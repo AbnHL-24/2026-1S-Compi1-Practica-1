@@ -1,0 +1,143 @@
+/* ========================================================================================
+   ANALIZADOR SINTÁCTICO - Calculadora Simple
+   Generado por Java CUP para el curso de Compiladores 1
+   
+   Gramática: Expresiones aritméticas con precedencia de operadores
+   - Suma y resta (menor precedencia)
+   - Multiplicación y división
+   - Potencia (mayor precedencia)
+   - Paréntesis para agrupar
+   - Variables y asignación
+   ======================================================================================== */
+
+package com.abn.app_compi1_practica1.compiler;
+
+import java_cup.runtime.*;
+import java.util.HashMap;
+import java.io.StringReader;
+
+/* Código del parser */
+parser code {:
+    // Tabla de símbolos para almacenar variables
+    private HashMap<String, Double> symbolTable = new HashMap<>();
+    
+    // Método para reportar errores
+    public void report_error(String message, Object info) {
+        StringBuilder m = new StringBuilder("Error sintáctico");
+        
+        if (info instanceof Symbol) {
+            Symbol s = (Symbol) info;
+            if (s.left >= 0) {                
+                m.append(" en línea ").append(s.left);
+                if (s.right >= 0) {
+                    m.append(", columna ").append(s.right);
+                }
+            }
+        }
+        
+        m.append(": ").append(message);
+        System.err.println(m);
+    }
+   
+    public void report_fatal_error(String message, Object info) {
+        report_error(message, info);
+        throw new RuntimeException("Error fatal en el análisis sintáctico");
+    }
+    
+    // Método para obtener el valor de una variable
+    public Double getVariable(String name) {
+        return symbolTable.getOrDefault(name, 0.0);
+    }
+    
+    // Método para establecer el valor de una variable
+    public void setVariable(String name, Double value) {
+        symbolTable.put(name, value);
+    }
+    
+    // Método para obtener todas las variables
+    public HashMap<String, Double> getSymbolTable() {
+        return symbolTable;
+    }
+:};
+
+/* Terminales (tokens devueltos por el scanner) */
+terminal Double NUMBER;
+terminal String IDENTIFIER;
+terminal PLUS, MINUS, TIMES, DIVIDE, POWER;
+terminal LPAREN, RPAREN;
+terminal EQUALS, SEMICOLON;
+
+/* No terminales */
+non terminal Object program;
+non terminal Double expr;
+non terminal Object statement;
+
+/* Precedencia y asociatividad de operadores */
+precedence left PLUS, MINUS;
+precedence left TIMES, DIVIDE;
+precedence right POWER;
+precedence left LPAREN;
+
+/* Gramática */
+
+start with program;
+
+program ::= 
+    statement:s
+    {: RESULT = s; :}
+    | program statement:s
+    {: RESULT = s; :}
+    ;
+
+statement ::=
+    expr:e SEMICOLON
+    {: 
+        System.out.println("Resultado: " + e);
+        RESULT = e; 
+    :}
+    | IDENTIFIER:id EQUALS expr:e SEMICOLON
+    {:
+        parser.setVariable(id, e);
+        System.out.println("Variable " + id + " = " + e);
+        RESULT = e;
+    :}
+    | expr:e
+    {: RESULT = e; :}
+    ;
+
+expr ::=
+    NUMBER:n
+    {: RESULT = n; :}
+    
+    | IDENTIFIER:id
+    {: RESULT = parser.getVariable(id); :}
+    
+    | expr:e1 PLUS expr:e2
+    {: RESULT = e1 + e2; :}
+    
+    | expr:e1 MINUS expr:e2
+    {: RESULT = e1 - e2; :}
+    
+    | expr:e1 TIMES expr:e2
+    {: RESULT = e1 * e2; :}
+    
+    | expr:e1 DIVIDE expr:e2
+    {:
+        if (e2 == 0) {
+            parser.report_error("División por cero", null);
+            RESULT = 0.0;
+        } else {
+            RESULT = e1 / e2;
+        }
+    :}
+    
+    | expr:e1 POWER expr:e2
+    {: RESULT = Math.pow(e1, e2); :}
+    
+    | MINUS expr:e
+    {: RESULT = -e; :}
+    %prec TIMES
+    
+    | LPAREN expr:e RPAREN
+    {: RESULT = e; :}
+    ;
