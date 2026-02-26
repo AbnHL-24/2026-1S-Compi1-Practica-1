@@ -18,20 +18,14 @@ class Asignacion(
             throw RuntimeException("Error Semántico: La variable '$nombre' no ha sido declarada")
         }
         
-        // Evaluar la expresión
+        // Evaluar la expresión y asignar directamente
+        // Permitir tipos nativos: Boolean, Double, String, null
         val resultado = valor.interpretar(entorno)
         
-        // Convertir a Double
-        val valorDouble = when (resultado) {
-            is Double -> resultado
-            is Int -> resultado.toDouble()
-            else -> throw RuntimeException("La expresión no produce un valor numérico")
-        }
+        // Asignar el valor preservando su tipo
+        entorno.asignar(nombre, resultado)
         
-        // Asignar el valor
-        entorno.asignar(nombre, valorDouble)
-        
-        return "Variable '$nombre' = $valorDouble"
+        return "Variable '$nombre' = $resultado"
     }
     
     override fun toString(): String {

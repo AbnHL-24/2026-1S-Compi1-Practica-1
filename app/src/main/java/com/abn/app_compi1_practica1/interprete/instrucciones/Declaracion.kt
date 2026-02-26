@@ -15,15 +15,9 @@ class Declaracion(
     override fun ejecutar(entorno: Entorno): Any? {
         // Evaluar la expresión inicial si existe
         val valor = if (valorInicial != null) {
-            val resultado = valorInicial.interpretar(entorno)
-            // Convertir a Double
-            when (resultado) {
-                is Double -> resultado
-                is Int -> resultado.toDouble()
-                else -> 0.0
-            }
+            valorInicial.interpretar(entorno)
         } else {
-            0.0
+            null
         }
         
         // Declarar la variable en el entorno
