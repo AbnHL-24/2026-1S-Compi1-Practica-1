@@ -20,11 +20,26 @@ import java_cup.runtime.Symbol;
 import java.util.LinkedList;
 import java.util.HashMap;
 
+// Importaciones del intérprete (clases Kotlin)
+import com.abn.app_compi1_practica1.interprete.simbolo.Entorno;
+import com.abn.app_compi1_practica1.interprete.expresiones.Expresion;
+import com.abn.app_compi1_practica1.interprete.expresiones.Literal;
+import com.abn.app_compi1_practica1.interprete.expresiones.Variable;
+import com.abn.app_compi1_practica1.interprete.expresiones.OperacionAritmetica;
+import com.abn.app_compi1_practica1.interprete.expresiones.OperadorAritmetico;
+import com.abn.app_compi1_practica1.interprete.expresiones.OperacionRelacional;
+import com.abn.app_compi1_practica1.interprete.expresiones.OperadorRelacional;
+import com.abn.app_compi1_practica1.interprete.expresiones.OperacionLogica;
+import com.abn.app_compi1_practica1.interprete.expresiones.OperadorLogico;
+
 // ========================================================================================
 // CÓDIGO DEL PARSER
 // ========================================================================================
 parser code {:
-    // Tabla de símbolos para almacenar variables
+    // *** NUEVO: Entorno de ejecución (Tabla de Símbolos con patrón Intérprete) ***
+    public Entorno entorno = new Entorno();
+    
+    // Tabla de símbolos para almacenar variables (TEMPORAL - aún usado por DECLARACION/ASIGNACION)
     public HashMap<String, Double> tablaSimbolos = new HashMap<>();
     
     // Lista para almacenar la salida de MOSTRAR
@@ -158,10 +173,10 @@ nonterminal Object LEER_INST;
 nonterminal Object CONDICIONAL_SI;
 nonterminal Object CICLO_MIENTRAS;
 nonterminal LinkedList<Object> BLOQUE;
-nonterminal Object EXPRESION;
-nonterminal Double EXPRESION_ARITMETICA;
-nonterminal Boolean EXPRESION_RELACIONAL;
-nonterminal Boolean EXPRESION_LOGICA;
+nonterminal Expresion EXPRESION;
+nonterminal Expresion EXPRESION_ARITMETICA;
+nonterminal Expresion EXPRESION_RELACIONAL;
+nonterminal Expresion EXPRESION_LOGICA;
 
 // ========================================================================================
 // PRECEDENCIA Y ASOCIATIVIDAD
@@ -243,16 +258,30 @@ INSTRUCCION ::=
 
 DECLARACION ::= 
     // VAR id = expresion
-    VAR ID:nombre ASIGNACION EXPRESION_ARITMETICA:valor
+    VAR ID:nombre ASIGNACION EXPRESION_ARITMETICA:valorExpr
     {:
+        // Interpretar la expresión para obtener el valor
+        Object valorObj = valorExpr.interpretar(parser.entorno);
+        Double valor = (valorObj instanceof Double) ? (Double) valorObj : 0.0;
+        
+        // Declarar en el nuevo entorno
+        parser.entorno.declarar(nombre, valor);
+        
+        // TEMPORAL: También declarar en la tabla antigua para compatibilidad
         parser.declararVariable(nombre, valor);
+        
         RESULT = "Variable '" + nombre + "' declarada con valor: " + valor;
     :}
     
     // VAR id (sin inicialización)
     | VAR ID:nombre
     {:
+        // Declarar en el nuevo entorno
+        parser.entorno.declarar(nombre, 0.0);
+        
+        // TEMPORAL: También declarar en la tabla antigua para compatibilidad
         parser.declararVariable(nombre, 0.0);
+        
         RESULT = "Variable '" + nombre + "' declarada con valor: 0.0";
     :}
     ;
@@ -262,9 +291,18 @@ DECLARACION ::=
 // ========================================================================================
 
 ASIGNACION_VAR ::= 
-    ID:nombre ASIGNACION EXPRESION_ARITMETICA:valor
+    ID:nombre ASIGNACION EXPRESION_ARITMETICA:valorExpr
     {:
+        // Interpretar la expresión para obtener el valor
+        Object valorObj = valorExpr.interpretar(parser.entorno);
+        Double valor = (valorObj instanceof Double) ? (Double) valorObj : 0.0;
+        
+        // Asignar en el nuevo entorno
+        parser.entorno.asignar(nombre, valor);
+        
+        // TEMPORAL: También asignar en la tabla antigua para compatibilidad
         parser.asignarVariable(nombre, valor);
+        
         RESULT = "Variable '" + nombre + "' = " + valor;
     :}
     ;
@@ -324,14 +362,15 @@ BLOQUE ::=
 
 CONDICIONAL_SI ::=
     // SI (condicion) ENTONCES bloque FINSI
-    SI PARENT_IZQ EXPRESION:condicion PARENT_DER ENTONCES BLOQUE:bloqueVerdadero FINSI
+    SI PARENT_IZQ EXPRESION:condicionExpr PARENT_DER ENTONCES BLOQUE:bloqueVerdadero FINSI
     {:
-        // Evaluar la condición
+        // Interpretar la condición
+        Object condObj = condicionExpr.interpretar(parser.entorno);
         boolean resultado = false;
-        if (condicion instanceof Boolean) {
-            resultado = (Boolean) condicion;
-        } else if (condicion instanceof Double) {
-            resultado = ((Double) condicion) != 0.0;
+        if (condObj instanceof Boolean) {
+            resultado = (Boolean) condObj;
+        } else if (condObj instanceof Double) {
+            resultado = ((Double) condObj) != 0.0;
         }
         
         // Ejecutar el bloque si la condición es verdadera
@@ -346,14 +385,15 @@ CONDICIONAL_SI ::=
     :}
     
     // SI (condicion) ENTONCES bloque SINO bloque FINSI
-    | SI PARENT_IZQ EXPRESION:condicion PARENT_DER ENTONCES BLOQUE:bloqueVerdadero SINO BLOQUE:bloqueFalso FINSI
+    | SI PARENT_IZQ EXPRESION:condicionExpr PARENT_DER ENTONCES BLOQUE:bloqueVerdadero SINO BLOQUE:bloqueFalso FINSI
     {:
-        // Evaluar la condición
+        // Interpretar la condición
+        Object condObj = condicionExpr.interpretar(parser.entorno);
         boolean resultado = false;
-        if (condicion instanceof Boolean) {
-            resultado = (Boolean) condicion;
-        } else if (condicion instanceof Double) {
-            resultado = ((Double) condicion) != 0.0;
+        if (condObj instanceof Boolean) {
+            resultado = (Boolean) condObj;
+        } else if (condObj instanceof Double) {
+            resultado = ((Double) condObj) != 0.0;
         }
         
         // Ejecutar el bloque correspondiente
@@ -378,18 +418,20 @@ CONDICIONAL_SI ::=
 
 CICLO_MIENTRAS ::=
     // MIENTRAS (condicion) HACER bloque FINMIENTRAS
-    MIENTRAS PARENT_IZQ EXPRESION:condicion PARENT_DER HACER BLOQUE:bloque FINMIENTRAS
+    MIENTRAS PARENT_IZQ EXPRESION:condicionExpr PARENT_DER HACER BLOQUE:bloque FINMIENTRAS
     {:
-        // Nota: En esta versión simplificada, el ciclo MIENTRAS es reconocido
-        // sintácticamente pero no se ejecuta iterativamente.
-        // Para una ejecución completa, se requeriría implementar un AST.
+        // Nota: Ahora que tenemos AST, podemos interpretar la condición
+        // pero aún no podemos ejecutar iterativamente porque el bloque
+        // ya está "ejecutado" durante el parsing.
+        // Esto requerirá migrar también las instrucciones al patrón AST.
         
-        // Evaluar la condición inicial
+        // Interpretar la condición inicial
+        Object condObj = condicionExpr.interpretar(parser.entorno);
         boolean resultado = false;
-        if (condicion instanceof Boolean) {
-            resultado = (Boolean) condicion;
-        } else if (condicion instanceof Double) {
-            resultado = ((Double) condicion) != 0.0;
+        if (condObj instanceof Boolean) {
+            resultado = (Boolean) condObj;
+        } else if (condObj instanceof Double) {
+            resultado = ((Double) condObj) != 0.0;
         }
         
         // Por ahora, solo reportamos que se reconoció la estructura
@@ -426,39 +468,34 @@ EXPRESION_ARITMETICA ::=
     EXPRESION_ARITMETICA:e1 MAS EXPRESION_ARITMETICA:e2
     {:
         parser.agregarOperador("Suma", e1left, e1right, e1 + " + " + e2);
-        RESULT = e1 + e2;
+        RESULT = new OperacionAritmetica(OperadorAritmetico.SUMA, e1, e2);
     :}
     
     // Resta
     | EXPRESION_ARITMETICA:e1 MENOS EXPRESION_ARITMETICA:e2
     {:
         parser.agregarOperador("Resta", e1left, e1right, e1 + " - " + e2);
-        RESULT = e1 - e2;
+        RESULT = new OperacionAritmetica(OperadorAritmetico.RESTA, e1, e2);
     :}
     
     // Multiplicación
     | EXPRESION_ARITMETICA:e1 MULT EXPRESION_ARITMETICA:e2
     {:
         parser.agregarOperador("Multiplicación", e1left, e1right, e1 + " * " + e2);
-        RESULT = e1 * e2;
+        RESULT = new OperacionAritmetica(OperadorAritmetico.MULTIPLICACION, e1, e2);
     :}
     
     // División
     | EXPRESION_ARITMETICA:e1 DIV EXPRESION_ARITMETICA:e2
     {:
         parser.agregarOperador("División", e1left, e1right, e1 + " / " + e2);
-        if (e2 == 0.0) {
-            parser.syntax_error(new Symbol(sym.DIV, e2left, e2right, "División por cero"));
-            RESULT = 0.0;
-        } else {
-            RESULT = e1 / e2;
-        }
+        RESULT = new OperacionAritmetica(OperadorAritmetico.DIVISION, e1, e2);
     :}
     
     // Negación unaria
     | MENOS EXPRESION_ARITMETICA:e
     {:
-        RESULT = -e;
+        RESULT = new OperacionAritmetica(OperadorAritmetico.NEGACION_UNARIA, e);
     :}
     
     // Paréntesis
@@ -470,19 +507,19 @@ EXPRESION_ARITMETICA ::=
     // Variable (acceso)
     | ID:nombre
     {:
-        RESULT = parser.obtenerVariable(nombre);
+        RESULT = new Variable(nombre);
     :}
     
     // Número decimal
     | DECIMAL:n
     {:
-        RESULT = Double.parseDouble(n);
+        RESULT = new Literal(Double.parseDouble(n));
     :}
     
     // Número entero
     | ENTERO:n
     {:
-        RESULT = Double.parseDouble(n);
+        RESULT = new Literal(Double.parseDouble(n));
     :}
     ;
 
@@ -494,37 +531,37 @@ EXPRESION_RELACIONAL ::=
     // Igualdad
     EXPRESION_ARITMETICA:e1 IGUAL EXPRESION_ARITMETICA:e2
     {:
-        RESULT = e1.equals(e2);
+        RESULT = new OperacionRelacional(OperadorRelacional.IGUAL, e1, e2);
     :}
     
     // Diferente
     | EXPRESION_ARITMETICA:e1 DIFERENTE EXPRESION_ARITMETICA:e2
     {:
-        RESULT = !e1.equals(e2);
+        RESULT = new OperacionRelacional(OperadorRelacional.DIFERENTE, e1, e2);
     :}
     
     // Mayor que
     | EXPRESION_ARITMETICA:e1 MAYOR EXPRESION_ARITMETICA:e2
     {:
-        RESULT = e1 > e2;
+        RESULT = new OperacionRelacional(OperadorRelacional.MAYOR, e1, e2);
     :}
     
     // Menor que
     | EXPRESION_ARITMETICA:e1 MENOR EXPRESION_ARITMETICA:e2
     {:
-        RESULT = e1 < e2;
+        RESULT = new OperacionRelacional(OperadorRelacional.MENOR, e1, e2);
     :}
     
     // Mayor o igual
     | EXPRESION_ARITMETICA:e1 MAYOR_IGUAL EXPRESION_ARITMETICA:e2
     {:
-        RESULT = e1 >= e2;
+        RESULT = new OperacionRelacional(OperadorRelacional.MAYOR_IGUAL, e1, e2);
     :}
     
     // Menor o igual
     | EXPRESION_ARITMETICA:e1 MENOR_IGUAL EXPRESION_ARITMETICA:e2
     {:
-        RESULT = e1 <= e2;
+        RESULT = new OperacionRelacional(OperadorRelacional.MENOR_IGUAL, e1, e2);
     :}
     ;
 
@@ -536,19 +573,19 @@ EXPRESION_LOGICA ::=
     // AND lógico
     EXPRESION_RELACIONAL:e1 AND EXPRESION_RELACIONAL:e2
     {:
-        RESULT = e1 && e2;
+        RESULT = new OperacionLogica(OperadorLogico.AND, e1, e2);
     :}
     
     // OR lógico
     | EXPRESION_RELACIONAL:e1 OR EXPRESION_RELACIONAL:e2
     {:
-        RESULT = e1 || e2;
+        RESULT = new OperacionLogica(OperadorLogico.OR, e1, e2);
     :}
     
     // NOT lógico
     | NOT EXPRESION_RELACIONAL:e
     {:
-        RESULT = !e;
+        RESULT = new OperacionLogica(OperadorLogico.NOT, e);
     :}
     
     // Paréntesis
