@@ -40,7 +40,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun EvaluadorExpresionesScreen() {
     // Estado para el texto de entrada con ejemplo inicial
-    var textoExpresion by remember { mutableStateOf("VAR a = 10\nVAR b = 20\nMOSTRAR \"El valor de a es:\"\nMOSTRAR \"Suma: \"\na + b") }
+    var textoExpresion by remember { mutableStateOf("MOSTRAR \"Ingrese el primer número:\"\nLEER x\nMOSTRAR \"Ingrese el segundo número:\"\nLEER y\nMOSTRAR \"La suma es:\"\nx + y") }
     
     // Estado para los resultados
     var resultado by remember { mutableStateOf<String?>(null) }
@@ -97,6 +97,13 @@ fun EvaluadorExpresionesScreen() {
                     // Crear el lexer y parser
                     val lexer = Lexer(StringReader(textoExpresion))
                     val parser = Parser(lexer)
+                    
+                    // Configurar valores simulados para LEER
+                    // En una app real, estos valores vendrían de un diálogo de entrada
+                    parser.entradaSimulada.put("x", 15.0)
+                    parser.entradaSimulada.put("y", 25.0)
+                    parser.entradaSimulada.put("numero", 42.0)
+                    parser.entradaSimulada.put("n", 10.0)
                     
                     // Parsear y evaluar
                     val resultadoParseo = parser.parse()

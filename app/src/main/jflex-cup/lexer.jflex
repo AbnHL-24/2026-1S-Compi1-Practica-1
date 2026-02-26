@@ -7,6 +7,7 @@
    - Identificadores (variables)
    - Palabra reservada VAR para declaración de variables
    - Palabra reservada MOSTRAR para imprimir texto
+   - Palabra reservada LEER para entrada de datos
    - Cadenas de texto entre comillas dobles
    - Operador de asignación =
    - Operadores aritméticos: + - * /
@@ -73,6 +74,7 @@ ID = [a-zA-Z][a-zA-Z0-9_]*
 // Palabras reservadas
 VAR = "VAR"
 MOSTRAR = "MOSTRAR"
+LEER = "LEER"
 
 // Cadenas de texto (entre comillas dobles, permite escapar comillas)
 CADENA = [\"]((\\\")|[^\"\n]*)[\"]
@@ -120,6 +122,7 @@ PARENT_DER = ")"
 // Palabras reservadas (ANTES que los identificadores)
 <YYINITIAL> {VAR}           { return new Symbol(sym.VAR, yyline, yycolumn, yytext()); }
 <YYINITIAL> {MOSTRAR}       { return new Symbol(sym.MOSTRAR, yyline, yycolumn, yytext()); }
+<YYINITIAL> {LEER}          { return new Symbol(sym.LEER, yyline, yycolumn, yytext()); }
 
 // Cadenas de texto
 <YYINITIAL> {CADENA}        { return new Symbol(sym.CADENA, yyline, yycolumn, yytext()); }
