@@ -137,7 +137,7 @@ MOSTRAR "=== FIN DE LA PRUEBA ==="
 MOSTRAR "Todas las funcionalidades validadas"
 """.trimIndent()
     
-    // Estado para el texto de entrada con ejemplo inicial
+
     //var textoExpresion by remember { mutableStateOf(textoPruebaCompleto) }
     var textoExpresion by remember { mutableStateOf("") }
 
