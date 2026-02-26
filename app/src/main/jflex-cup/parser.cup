@@ -171,6 +171,9 @@ terminal VAR, MOSTRAR, LEER, SI, ENTONCES, SINO, FINSI, MIENTRAS, HACER, FINMIEN
 // Operadores aritméticos
 terminal MAS, MENOS, MULT, DIV;
 
+// Token ficticio para precedencia de negación unaria
+terminal UMENOS;
+
 // Operadores relacionales
 terminal IGUAL, DIFERENTE, MAYOR, MENOR, MAYOR_IGUAL, MENOR_IGUAL;
 
@@ -195,9 +198,6 @@ nonterminal Instruccion CONDICIONAL_SI;
 nonterminal Instruccion CICLO_MIENTRAS;
 nonterminal LinkedList<Instruccion> BLOQUE;
 nonterminal Expresion EXPRESION;
-nonterminal Expresion EXPRESION_ARITMETICA;
-nonterminal Expresion EXPRESION_RELACIONAL;
-nonterminal Expresion EXPRESION_LOGICA;
 
 // ========================================================================================
 // PRECEDENCIA Y ASOCIATIVIDAD
@@ -210,6 +210,7 @@ precedence right NOT;
 precedence left IGUAL, DIFERENTE, MAYOR, MENOR, MAYOR_IGUAL, MENOR_IGUAL;
 precedence left MAS, MENOS;
 precedence left MULT, DIV;
+precedence right UMENOS;  // Negación unaria tiene mayor precedencia
 
 // ========================================================================================
 // GRAMÁTICA
@@ -279,7 +280,7 @@ INSTRUCCION ::=
 
 DECLARACION ::= 
     // VAR id = expresion
-    VAR ID:nombre ASIGNACION EXPRESION_ARITMETICA:valorExpr
+    VAR ID:nombre ASIGNACION EXPRESION:valorExpr
     {:
         // Construir objeto AST para la declaración
         Declaracion declaracion = new Declaracion(nombre, valorExpr);
@@ -316,7 +317,7 @@ DECLARACION ::=
 // ========================================================================================
 
 ASIGNACION_VAR ::= 
-    ID:nombre ASIGNACION EXPRESION_ARITMETICA:valorExpr
+    ID:nombre ASIGNACION EXPRESION:valorExpr
     {:
         // Construir objeto AST para la asignación
         Asignacion asignacion = new Asignacion(nombre, valorExpr);
@@ -338,18 +339,7 @@ ASIGNACION_VAR ::=
 // ========================================================================================
 
 MOSTRAR_INST ::=
-    MOSTRAR CADENA:texto
-    {:
-        // Construir objeto AST para MOSTRAR con cadena
-        Mostrar mostrar = new Mostrar(texto, parser.salida);
-        
-        // Ejecutar la instrucción
-        mostrar.ejecutar(parser.entorno);
-        
-        RESULT = mostrar;
-    :}
-    
-    | MOSTRAR EXPRESION:expr
+    MOSTRAR EXPRESION:expr
     {:
         // Evaluar la expresión y mostrar su valor
         Object valor = expr.interpretar(parser.entorno);
@@ -470,164 +460,112 @@ CICLO_MIENTRAS ::=
 // EXPRESIONES
 // ========================================================================================
 
-// Expresión principal (puede ser aritmética, relacional o lógica)
+// Expresión unificada (incluye operaciones aritméticas, relacionales, lógicas, variables y literales)
+// Inspirado en CompScript - todas las expresiones en un solo no-terminal
 EXPRESION ::= 
-    EXPRESION_LOGICA:e
-    {:
-        RESULT = e;
+    // Negación aritmética unaria
+    MENOS EXPRESION:a 
+    {: 
+        parser.agregarOperador("Aritmético", "Negación Unaria (-)", aleft, aright, "-" + a.toString());
+        RESULT = new OperacionAritmetica(OperadorAritmetico.NEGACION_UNARIA, a); 
+    :} %prec UMENOS
+    
+    // Operaciones aritméticas
+    | EXPRESION:a MAS EXPRESION:b 
+    {: 
+        parser.agregarOperador("Aritmético", "Suma (+)", aleft, aright, a.toString() + " + " + b.toString());
+        RESULT = new OperacionAritmetica(OperadorAritmetico.SUMA, a, b); 
     :}
-    | EXPRESION_RELACIONAL:e
-    {:
-        RESULT = e;
+    | EXPRESION:a MENOS EXPRESION:b 
+    {: 
+        parser.agregarOperador("Aritmético", "Resta (-)", aleft, aright, a.toString() + " - " + b.toString());
+        RESULT = new OperacionAritmetica(OperadorAritmetico.RESTA, a, b); 
     :}
-    | EXPRESION_ARITMETICA:e
-    {:
-        RESULT = e;
+    | EXPRESION:a MULT EXPRESION:b 
+    {: 
+        parser.agregarOperador("Aritmético", "Multiplicación (*)", aleft, aright, a.toString() + " * " + b.toString());
+        RESULT = new OperacionAritmetica(OperadorAritmetico.MULTIPLICACION, a, b); 
     :}
-    ;
-
-// ========================================================================================
-// EXPRESIONES ARITMÉTICAS
-// ========================================================================================
-
-EXPRESION_ARITMETICA ::= 
-    // Suma
-    EXPRESION_ARITMETICA:e1 MAS EXPRESION_ARITMETICA:e2
-    {:
-        parser.agregarOperador("Aritmético", "Suma (+)", e1left, e1right, e1.toString() + " + " + e2.toString());
-        RESULT = new OperacionAritmetica(OperadorAritmetico.SUMA, e1, e2);
+    | EXPRESION:a DIV EXPRESION:b 
+    {: 
+        parser.agregarOperador("Aritmético", "División (/)", aleft, aright, a.toString() + " / " + b.toString());
+        RESULT = new OperacionAritmetica(OperadorAritmetico.DIVISION, a, b); 
     :}
     
-    // Resta
-    | EXPRESION_ARITMETICA:e1 MENOS EXPRESION_ARITMETICA:e2
-    {:
-        parser.agregarOperador("Aritmético", "Resta (-)", e1left, e1right, e1.toString() + " - " + e2.toString());
-        RESULT = new OperacionAritmetica(OperadorAritmetico.RESTA, e1, e2);
+    // Operaciones relacionales
+    | EXPRESION:a IGUAL EXPRESION:b 
+    {: 
+        parser.agregarOperador("Relacional", "Igual (==)", aleft, aright, a.toString() + " == " + b.toString());
+        RESULT = new OperacionRelacional(OperadorRelacional.IGUAL, a, b); 
+    :}
+    | EXPRESION:a DIFERENTE EXPRESION:b 
+    {: 
+        parser.agregarOperador("Relacional", "Diferente (!=)", aleft, aright, a.toString() + " != " + b.toString());
+        RESULT = new OperacionRelacional(OperadorRelacional.DIFERENTE, a, b); 
+    :}
+    | EXPRESION:a MAYOR EXPRESION:b 
+    {: 
+        parser.agregarOperador("Relacional", "Mayor (>)", aleft, aright, a.toString() + " > " + b.toString());
+        RESULT = new OperacionRelacional(OperadorRelacional.MAYOR, a, b); 
+    :}
+    | EXPRESION:a MENOR EXPRESION:b 
+    {: 
+        parser.agregarOperador("Relacional", "Menor (<)", aleft, aright, a.toString() + " < " + b.toString());
+        RESULT = new OperacionRelacional(OperadorRelacional.MENOR, a, b); 
+    :}
+    | EXPRESION:a MAYOR_IGUAL EXPRESION:b 
+    {: 
+        parser.agregarOperador("Relacional", "Mayor o Igual (>=)", aleft, aright, a.toString() + " >= " + b.toString());
+        RESULT = new OperacionRelacional(OperadorRelacional.MAYOR_IGUAL, a, b); 
+    :}
+    | EXPRESION:a MENOR_IGUAL EXPRESION:b 
+    {: 
+        parser.agregarOperador("Relacional", "Menor o Igual (<=)", aleft, aright, a.toString() + " <= " + b.toString());
+        RESULT = new OperacionRelacional(OperadorRelacional.MENOR_IGUAL, a, b); 
     :}
     
-    // Multiplicación
-    | EXPRESION_ARITMETICA:e1 MULT EXPRESION_ARITMETICA:e2
-    {:
-        parser.agregarOperador("Aritmético", "Multiplicación (*)", e1left, e1right, e1.toString() + " * " + e2.toString());
-        RESULT = new OperacionAritmetica(OperadorAritmetico.MULTIPLICACION, e1, e2);
+    // Operaciones lógicas
+    | EXPRESION:a OR EXPRESION:b 
+    {: 
+        parser.agregarOperador("Lógico", "OR (||)", aleft, aright, a.toString() + " || " + b.toString());
+        RESULT = new OperacionLogica(OperadorLogico.OR, a, b); 
     :}
-    
-    // División
-    | EXPRESION_ARITMETICA:e1 DIV EXPRESION_ARITMETICA:e2
-    {:
-        parser.agregarOperador("Aritmético", "División (/)", e1left, e1right, e1.toString() + " / " + e2.toString());
-        RESULT = new OperacionAritmetica(OperadorAritmetico.DIVISION, e1, e2);
+    | EXPRESION:a AND EXPRESION:b 
+    {: 
+        parser.agregarOperador("Lógico", "AND (&&)", aleft, aright, a.toString() + " && " + b.toString());
+        RESULT = new OperacionLogica(OperadorLogico.AND, a, b); 
     :}
-    
-    // Negación unaria
-    | MENOS EXPRESION_ARITMETICA:e
-    {:
-        parser.agregarOperador("Aritmético", "Negación Unaria (-)", eleft, eright, "-" + e.toString());
-        RESULT = new OperacionAritmetica(OperadorAritmetico.NEGACION_UNARIA, e);
-    :}
-    
-    // Paréntesis
-    | PARENT_IZQ EXPRESION_ARITMETICA:e PARENT_DER
-    {:
-        RESULT = e;
-    :}
-    
-    // Variable (acceso)
-    | ID:nombre
-    {:
-        RESULT = new Variable(nombre);
-    :}
-    
-    // Número decimal
-    | DECIMAL:n
-    {:
-        RESULT = new Literal(Double.parseDouble(n));
-    :}
-    
-    // Número entero
-    | ENTERO:n
-    {:
-        RESULT = new Literal(Double.parseDouble(n));
-    :}
-    ;
-
-// ========================================================================================
-// EXPRESIONES RELACIONALES
-// ========================================================================================
-
-EXPRESION_RELACIONAL ::= 
-    // Igualdad
-    EXPRESION_ARITMETICA:e1 IGUAL EXPRESION_ARITMETICA:e2
-    {:
-        parser.agregarOperador("Relacional", "Igual (==)", e1left, e1right, e1.toString() + " == " + e2.toString());
-        RESULT = new OperacionRelacional(OperadorRelacional.IGUAL, e1, e2);
-    :}
-    
-    // Diferente
-    | EXPRESION_ARITMETICA:e1 DIFERENTE EXPRESION_ARITMETICA:e2
-    {:
-        parser.agregarOperador("Relacional", "Diferente (!=)", e1left, e1right, e1.toString() + " != " + e2.toString());
-        RESULT = new OperacionRelacional(OperadorRelacional.DIFERENTE, e1, e2);
-    :}
-    
-    // Mayor que
-    | EXPRESION_ARITMETICA:e1 MAYOR EXPRESION_ARITMETICA:e2
-    {:
-        parser.agregarOperador("Relacional", "Mayor (>)", e1left, e1right, e1.toString() + " > " + e2.toString());
-        RESULT = new OperacionRelacional(OperadorRelacional.MAYOR, e1, e2);
-    :}
-    
-    // Menor que
-    | EXPRESION_ARITMETICA:e1 MENOR EXPRESION_ARITMETICA:e2
-    {:
-        parser.agregarOperador("Relacional", "Menor (<)", e1left, e1right, e1.toString() + " < " + e2.toString());
-        RESULT = new OperacionRelacional(OperadorRelacional.MENOR, e1, e2);
-    :}
-    
-    // Mayor o igual
-    | EXPRESION_ARITMETICA:e1 MAYOR_IGUAL EXPRESION_ARITMETICA:e2
-    {:
-        parser.agregarOperador("Relacional", "Mayor o Igual (>=)", e1left, e1right, e1.toString() + " >= " + e2.toString());
-        RESULT = new OperacionRelacional(OperadorRelacional.MAYOR_IGUAL, e1, e2);
-    :}
-    
-    // Menor o igual
-    | EXPRESION_ARITMETICA:e1 MENOR_IGUAL EXPRESION_ARITMETICA:e2
-    {:
-        parser.agregarOperador("Relacional", "Menor o Igual (<=)", e1left, e1right, e1.toString() + " <= " + e2.toString());
-        RESULT = new OperacionRelacional(OperadorRelacional.MENOR_IGUAL, e1, e2);
-    :}
-    ;
-
-// ========================================================================================
-// EXPRESIONES LÓGICAS
-// ========================================================================================
-
-EXPRESION_LOGICA ::= 
-    // AND lógico
-    EXPRESION_RELACIONAL:e1 AND EXPRESION_RELACIONAL:e2
-    {:
-        parser.agregarOperador("Lógico", "AND (&&)", e1left, e1right, e1.toString() + " && " + e2.toString());
-        RESULT = new OperacionLogica(OperadorLogico.AND, e1, e2);
-    :}
-    
-    // OR lógico
-    | EXPRESION_RELACIONAL:e1 OR EXPRESION_RELACIONAL:e2
-    {:
-        parser.agregarOperador("Lógico", "OR (||)", e1left, e1right, e1.toString() + " || " + e2.toString());
-        RESULT = new OperacionLogica(OperadorLogico.OR, e1, e2);
-    :}
-    
-    // NOT lógico
-    | NOT EXPRESION_RELACIONAL:e
-    {:
-        parser.agregarOperador("Lógico", "NOT (!)", eleft, eright, "!" + e.toString());
-        RESULT = new OperacionLogica(OperadorLogico.NOT, e);
+    | NOT EXPRESION:a 
+    {: 
+        parser.agregarOperador("Lógico", "NOT (!)", aleft, aright, "!" + a.toString());
+        RESULT = new OperacionLogica(OperadorLogico.NOT, a); 
     :}
     
     // Paréntesis
-    | PARENT_IZQ EXPRESION_LOGICA:e PARENT_DER
-    {:
-        RESULT = e;
+    | PARENT_IZQ EXPRESION:a PARENT_DER 
+    {: 
+        RESULT = a; 
+    :}
+    
+    // Variables
+    | ID:nombre 
+    {: 
+        RESULT = new Variable(nombre); 
+    :}
+    
+    // Literales numéricos
+    | ENTERO:n 
+    {: 
+        RESULT = new Literal(Double.parseDouble(n)); 
+    :}
+    | DECIMAL:n 
+    {: 
+        RESULT = new Literal(Double.parseDouble(n)); 
+    :}
+    
+    // Literales de cadena
+    | CADENA:texto 
+    {: 
+        RESULT = new Literal(texto); 
     :}
     ;

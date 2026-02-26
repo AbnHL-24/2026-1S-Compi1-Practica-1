@@ -198,7 +198,7 @@ MOSTRAR "Todas las funcionalidades validadas"
                                 fontSize = 12.sp,
                                 fontFamily = FontFamily.Monospace,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                modifier = Modifier.padding(vertical = 2.dp)
+                                lineHeight = 16.sp
                             )
                         }
                     }
@@ -214,7 +214,8 @@ MOSTRAR "Todas las funcionalidades validadas"
                             .weight(1f),
                         textStyle = androidx.compose.ui.text.TextStyle(
                             fontFamily = FontFamily.Monospace,
-                            fontSize = 12.sp
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp
                         ),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = MaterialTheme.colorScheme.surface,

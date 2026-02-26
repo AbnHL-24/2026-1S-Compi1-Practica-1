@@ -3,10 +3,10 @@ package com.abn.app_compi1_practica1.interprete.expresiones
 import com.abn.app_compi1_practica1.interprete.simbolo.Entorno
 
 /**
- * Clase que representa un literal numérico (entero o decimal)
+ * Clase que representa un literal (numérico o cadena de texto)
  */
 class Literal(
-    private val valor: Double
+    private val valor: Any
 ) : Expresion {
     
     override fun interpretar(entorno: Entorno): Any? {
