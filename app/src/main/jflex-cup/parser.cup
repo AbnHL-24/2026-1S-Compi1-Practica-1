@@ -37,6 +37,7 @@ import com.abn.app_compi1_practica1.interprete.instrucciones.Asignacion;
 import com.abn.app_compi1_practica1.interprete.instrucciones.Mostrar;
 import com.abn.app_compi1_practica1.interprete.instrucciones.Leer;
 import com.abn.app_compi1_practica1.interprete.instrucciones.Si;
+import com.abn.app_compi1_practica1.interprete.instrucciones.Mientras;
 
 // ========================================================================================
 // CÓDIGO DEL PARSER
@@ -177,8 +178,8 @@ nonterminal Instruccion ASIGNACION_VAR;
 nonterminal Instruccion MOSTRAR_INST;
 nonterminal Instruccion LEER_INST;
 nonterminal Instruccion CONDICIONAL_SI;
-nonterminal Object CICLO_MIENTRAS;
-nonterminal LinkedList<Object> BLOQUE;
+nonterminal Instruccion CICLO_MIENTRAS;
+nonterminal LinkedList<Instruccion> BLOQUE;
 nonterminal Expresion EXPRESION;
 nonterminal Expresion EXPRESION_ARITMETICA;
 nonterminal Expresion EXPRESION_RELACIONAL;
@@ -362,13 +363,19 @@ LEER_INST ::=
 BLOQUE ::=
     BLOQUE:lista INSTRUCCION:inst
     {:
-        lista.add(inst);
+        // Solo agregar si es una Instruccion
+        if (inst instanceof Instruccion) {
+            lista.add((Instruccion) inst);
+        }
         RESULT = lista;
     :}
     | INSTRUCCION:inst
     {:
-        LinkedList<Object> bloque = new LinkedList<Object>();
-        bloque.add(inst);
+        LinkedList<Instruccion> bloque = new LinkedList<Instruccion>();
+        // Solo agregar si es una Instruccion
+        if (inst instanceof Instruccion) {
+            bloque.add((Instruccion) inst);
+        }
         RESULT = bloque;
     :}
     ;
@@ -381,16 +388,8 @@ CONDICIONAL_SI ::=
     // SI (condicion) ENTONCES bloque FINSI
     SI PARENT_IZQ EXPRESION:condicionExpr PARENT_DER ENTONCES BLOQUE:bloqueVerdadero FINSI
     {:
-        // Convertir LinkedList<Object> a List<Instruccion>
-        LinkedList<Instruccion> instruccionesVerdaderas = new LinkedList<Instruccion>();
-        for (Object obj : bloqueVerdadero) {
-            if (obj instanceof Instruccion) {
-                instruccionesVerdaderas.add((Instruccion) obj);
-            }
-        }
-        
         // Construir objeto AST para SI
-        Si si = new Si(condicionExpr, instruccionesVerdaderas, null);
+        Si si = new Si(condicionExpr, bloqueVerdadero, null);
         
         // Ejecutar la instrucción
         si.ejecutar(parser.entorno);
@@ -401,23 +400,8 @@ CONDICIONAL_SI ::=
     // SI (condicion) ENTONCES bloque SINO bloque FINSI
     | SI PARENT_IZQ EXPRESION:condicionExpr PARENT_DER ENTONCES BLOQUE:bloqueVerdadero SINO BLOQUE:bloqueFalso FINSI
     {:
-        // Convertir LinkedList<Object> a List<Instruccion>
-        LinkedList<Instruccion> instruccionesVerdaderas = new LinkedList<Instruccion>();
-        for (Object obj : bloqueVerdadero) {
-            if (obj instanceof Instruccion) {
-                instruccionesVerdaderas.add((Instruccion) obj);
-            }
-        }
-        
-        LinkedList<Instruccion> instruccionesFalsas = new LinkedList<Instruccion>();
-        for (Object obj : bloqueFalso) {
-            if (obj instanceof Instruccion) {
-                instruccionesFalsas.add((Instruccion) obj);
-            }
-        }
-        
         // Construir objeto AST para SI-SINO
-        Si si = new Si(condicionExpr, instruccionesVerdaderas, instruccionesFalsas);
+        Si si = new Si(condicionExpr, bloqueVerdadero, bloqueFalso);
         
         // Ejecutar la instrucción
         si.ejecutar(parser.entorno);
@@ -434,22 +418,13 @@ CICLO_MIENTRAS ::=
     // MIENTRAS (condicion) HACER bloque FINMIENTRAS
     MIENTRAS PARENT_IZQ EXPRESION:condicionExpr PARENT_DER HACER BLOQUE:bloque FINMIENTRAS
     {:
-        // Nota: Ahora que tenemos AST, podemos interpretar la condición
-        // pero aún no podemos ejecutar iterativamente porque el bloque
-        // ya está "ejecutado" durante el parsing.
-        // Esto requerirá migrar también las instrucciones al patrón AST.
+        // Construir objeto AST para MIENTRAS
+        Mientras mientras = new Mientras(condicionExpr, bloque);
         
-        // Interpretar la condición inicial
-        Object condObj = condicionExpr.interpretar(parser.entorno);
-        boolean resultado = false;
-        if (condObj instanceof Boolean) {
-            resultado = (Boolean) condObj;
-        } else if (condObj instanceof Double) {
-            resultado = ((Double) condObj) != 0.0;
-        }
+        // Ejecutar el ciclo
+        mientras.ejecutar(parser.entorno);
         
-        // Por ahora, solo reportamos que se reconoció la estructura
-        RESULT = "MIENTRAS reconocido - condición inicial: " + resultado + ", instrucciones en bloque: " + bloque.size();
+        RESULT = mientras;
     :}
     ;
 
