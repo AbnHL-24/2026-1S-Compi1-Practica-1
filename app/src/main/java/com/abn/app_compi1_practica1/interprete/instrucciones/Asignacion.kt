@@ -25,7 +25,8 @@ class Asignacion(
         // Asignar el valor preservando su tipo
         entorno.asignar(nombre, resultado)
         
-        return "Variable '$nombre' = $resultado"
+        // No retornar mensaje para evitar duplicados en la salida
+        return null
     }
     
     override fun toString(): String {

@@ -23,7 +23,8 @@ class Declaracion(
         // Declarar la variable en el entorno
         entorno.declarar(nombre, valor)
         
-        return "Variable '$nombre' declarada con valor: $valor"
+        // No retornar mensaje para evitar duplicados en la salida
+        return null
     }
     
     override fun toString(): String {

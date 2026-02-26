@@ -27,22 +27,22 @@ class Si(
         }
         
         // Ejecutar el bloque correspondiente
-        var ultimoValor: Any? = null
         if (resultado) {
             // Ejecutar bloque verdadero
             for (instruccion in bloqueVerdadero) {
-                ultimoValor = instruccion.ejecutar(entorno)
+                instruccion.ejecutar(entorno)
             }
         } else {
             // Ejecutar bloque falso si existe
             if (bloqueFalso != null) {
                 for (instruccion in bloqueFalso) {
-                    ultimoValor = instruccion.ejecutar(entorno)
+                    instruccion.ejecutar(entorno)
                 }
             }
         }
         
-        return "SI ejecutado - condición: $resultado"
+        // No retornar mensaje para evitar duplicados en la salida
+        return null
     }
     
     override fun toString(): String {

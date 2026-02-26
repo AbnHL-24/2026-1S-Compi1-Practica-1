@@ -19,7 +19,6 @@ class Mientras(
     
     override fun ejecutar(entorno: Entorno): Any? {
         var iteraciones = 0
-        var ultimoValor: Any? = null
         
         // Evaluar la condición
         var valorCondicion = condicion.interpretar(entorno)
@@ -29,12 +28,12 @@ class Mientras(
         while (resultado) {
             // Verificar límite de seguridad
             if (iteraciones >= MAX_ITERACIONES) {
-                return "Error: Ciclo MIENTRAS excedió el límite de $MAX_ITERACIONES iteraciones (posible ciclo infinito)"
+                throw RuntimeException("Error: Ciclo MIENTRAS excedió el límite de $MAX_ITERACIONES iteraciones (posible ciclo infinito)")
             }
             
             // Ejecutar cada instrucción del bloque
             for (instruccion in bloque) {
-                ultimoValor = instruccion.ejecutar(entorno)
+                instruccion.ejecutar(entorno)
             }
             
             iteraciones++
@@ -44,7 +43,8 @@ class Mientras(
             resultado = convertirABooleano(valorCondicion)
         }
         
-        return "MIENTRAS ejecutado - iteraciones: $iteraciones"
+        // No retornar mensaje para evitar duplicados en la salida
+        return null
     }
     
     /**

@@ -1,38 +1,46 @@
 package com.abn.app_compi1_practica1.interprete.instrucciones
 
 import com.abn.app_compi1_practica1.interprete.simbolo.Entorno
+import com.abn.app_compi1_practica1.interprete.expresiones.Expresion
 
 /**
  * Clase que representa la instrucción MOSTRAR para imprimir texto
- * Sintaxis: MOSTRAR "texto"
+ * Sintaxis: MOSTRAR expresion
  */
 class Mostrar(
-    private val texto: String,
+    private val expresion: Expresion,
     private val salida: MutableList<String>
 ) : Instruccion {
     
     override fun ejecutar(entorno: Entorno): Any? {
-        // Procesar el texto (remover comillas y procesar escapes)
-        var textoLimpio = texto
+        // Evaluar la expresión
+        val valor = expresion.interpretar(entorno)
         
-        // Remover comillas si existen
-        if (textoLimpio.startsWith("\"") && textoLimpio.endsWith("\"")) {
-            textoLimpio = textoLimpio.substring(1, textoLimpio.length - 1)
+        // Convertir el valor a String
+        var textoMostrar = when (valor) {
+            null -> "null"
+            is String -> {
+                // Si es cadena literal, remover comillas y procesar escapes
+                var texto = valor
+                if (texto.startsWith("\"") && texto.endsWith("\"")) {
+                    texto = texto.substring(1, texto.length - 1)
+                }
+                texto.replace("\\\"", "\"")
+                     .replace("\\n", "\n")
+                     .replace("\\t", "\t")
+                     .replace("\\\\", "\\")
+            }
+            else -> valor.toString()
         }
         
-        // Procesar secuencias de escape
-        textoLimpio = textoLimpio.replace("\\\"", "\"")
-        textoLimpio = textoLimpio.replace("\\n", "\n")
-        textoLimpio = textoLimpio.replace("\\t", "\t")
-        textoLimpio = textoLimpio.replace("\\\\", "\\")
-        
         // Agregar a la salida
-        salida.add(textoLimpio)
+        salida.add(textoMostrar)
         
-        return textoLimpio
+        // No retornar mensaje para evitar duplicados
+        return null
     }
     
     override fun toString(): String {
-        return "MOSTRAR $texto"
+        return "MOSTRAR $expresion"
     }
 }

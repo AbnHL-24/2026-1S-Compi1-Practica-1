@@ -222,11 +222,16 @@ start with PROGRAMA;
 PROGRAMA ::= 
     INSTRUCCIONES:lista
     {:
-        // El resultado es la última instrucción evaluada
+        // Ejecutar todas las instrucciones en orden
         if (lista != null && !lista.isEmpty()) {
-            parser.ultimoResultado = lista.get(lista.size() - 1);
+            for (Object obj : lista) {
+                if (obj instanceof Instruccion) {
+                    ((Instruccion) obj).ejecutar(parser.entorno);
+                }
+            }
         }
-        RESULT = parser.ultimoResultado;
+        // No retornar nada para evitar mostrar objetos en la salida
+        RESULT = null;
     :}
     ;
 
@@ -282,33 +287,15 @@ DECLARACION ::=
     // VAR id = expresion
     VAR ID:nombre ASIGNACION EXPRESION:valorExpr
     {:
-        // Construir objeto AST para la declaración
-        Declaracion declaracion = new Declaracion(nombre, valorExpr);
-        
-        // Ejecutar la declaración
-        declaracion.ejecutar(parser.entorno);
-        
-        // TEMPORAL: También declarar en la tabla antigua para compatibilidad con otras instrucciones
-        Object valorObj = valorExpr.interpretar(parser.entorno);
-        Double valor = (valorObj instanceof Double) ? (Double) valorObj : 0.0;
-        parser.declararVariable(nombre, valor);
-        
-        RESULT = declaracion;
+        // Solo construir objeto AST, no ejecutar
+        RESULT = new Declaracion(nombre, valorExpr);
     :}
     
     // VAR id (sin inicialización)
     | VAR ID:nombre
     {:
-        // Construir objeto AST para la declaración sin valor inicial
-        Declaracion declaracion = new Declaracion(nombre, null);
-        
-        // Ejecutar la declaración
-        declaracion.ejecutar(parser.entorno);
-        
-        // TEMPORAL: También declarar en la tabla antigua para compatibilidad
-        parser.declararVariable(nombre, 0.0);
-        
-        RESULT = declaracion;
+        // Solo construir objeto AST, no ejecutar
+        RESULT = new Declaracion(nombre, null);
     :}
     ;
 
@@ -319,18 +306,8 @@ DECLARACION ::=
 ASIGNACION_VAR ::= 
     ID:nombre ASIGNACION EXPRESION:valorExpr
     {:
-        // Construir objeto AST para la asignación
-        Asignacion asignacion = new Asignacion(nombre, valorExpr);
-        
-        // Ejecutar la asignación
-        asignacion.ejecutar(parser.entorno);
-        
-        // TEMPORAL: También asignar en la tabla antigua para compatibilidad
-        Object valorObj = valorExpr.interpretar(parser.entorno);
-        Double valor = (valorObj instanceof Double) ? (Double) valorObj : 0.0;
-        parser.asignarVariable(nombre, valor);
-        
-        RESULT = asignacion;
+        // Solo construir objeto AST, no ejecutar
+        RESULT = new Asignacion(nombre, valorExpr);
     :}
     ;
 
@@ -341,17 +318,8 @@ ASIGNACION_VAR ::=
 MOSTRAR_INST ::=
     MOSTRAR EXPRESION:expr
     {:
-        // Evaluar la expresión y mostrar su valor
-        Object valor = expr.interpretar(parser.entorno);
-        String textoMostrar = valor != null ? valor.toString() : "null";
-        
-        // Construir objeto AST para MOSTRAR con expresión
-        Mostrar mostrar = new Mostrar(textoMostrar, parser.salida);
-        
-        // Ejecutar la instrucción
-        mostrar.ejecutar(parser.entorno);
-        
-        RESULT = mostrar;
+        // Solo construir objeto AST con la expresión, no ejecutar
+        RESULT = new Mostrar(expr, parser.salida);
     :}
     ;
 
@@ -362,16 +330,8 @@ MOSTRAR_INST ::=
 LEER_INST ::=
     LEER ID:nombre
     {:
-        // Construir objeto AST para LEER
-        Leer leer = new Leer(nombre, parser.entradaSimulada, parser.salida);
-        
-        // Ejecutar la instrucción
-        leer.ejecutar(parser.entorno);
-        
-        // TEMPORAL: También actualizar tabla antigua para compatibilidad
-        parser.leerVariable(nombre);
-        
-        RESULT = leer;
+        // Solo construir objeto AST, no ejecutar
+        RESULT = new Leer(nombre, parser.entradaSimulada, parser.salida);
     :}
     ;
 
@@ -410,13 +370,8 @@ CONDICIONAL_SI ::=
         // Agregar al reporte de estructuras
         parser.agregarEstructura("SI", condicionExpr.toString(), condicionExprleft, condicionExprright);
         
-        // Construir objeto AST para SI
-        Si si = new Si(condicionExpr, bloqueVerdadero, null);
-        
-        // Ejecutar la instrucción
-        si.ejecutar(parser.entorno);
-        
-        RESULT = si;
+        // Solo construir objeto AST, no ejecutar
+        RESULT = new Si(condicionExpr, bloqueVerdadero, null);
     :}
     
     // SI (condicion) ENTONCES bloque SINO bloque FINSI
@@ -425,13 +380,8 @@ CONDICIONAL_SI ::=
         // Agregar al reporte de estructuras
         parser.agregarEstructura("SI-SINO", condicionExpr.toString(), condicionExprleft, condicionExprright);
         
-        // Construir objeto AST para SI-SINO
-        Si si = new Si(condicionExpr, bloqueVerdadero, bloqueFalso);
-        
-        // Ejecutar la instrucción
-        si.ejecutar(parser.entorno);
-        
-        RESULT = si;
+        // Solo construir objeto AST, no ejecutar
+        RESULT = new Si(condicionExpr, bloqueVerdadero, bloqueFalso);
     :}
     ;
 
@@ -446,13 +396,8 @@ CICLO_MIENTRAS ::=
         // Agregar al reporte de estructuras
         parser.agregarEstructura("MIENTRAS", condicionExpr.toString(), condicionExprleft, condicionExprright);
         
-        // Construir objeto AST para MIENTRAS
-        Mientras mientras = new Mientras(condicionExpr, bloque);
-        
-        // Ejecutar el ciclo
-        mientras.ejecutar(parser.entorno);
-        
-        RESULT = mientras;
+        // Solo construir objeto AST, no ejecutar
+        RESULT = new Mientras(condicionExpr, bloque);
     :}
     ;
 
