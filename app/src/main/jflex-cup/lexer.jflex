@@ -1,69 +1,128 @@
 /* ========================================================================================
-   ANALIZADOR LÉXICO - Calculadora Simple
-   Generado por JFlex para el curso de Compiladores 1
+   ANALIZADOR LÉXICO - Expresiones Aritméticas, Relacionales y Lógicas
+   Curso: Compiladores 1 - Práctica 1
+   
+   Este analizador reconoce:
+   - Números enteros y decimales
+   - Operadores aritméticos: + - * /
+   - Operadores relacionales: == != < > <= >=
+   - Operadores lógicos: && || !
+   - Paréntesis para agrupar expresiones
    ======================================================================================== */
 
 package com.abn.app_compi1_practica1.compiler;
 
+// Importaciones
 import java_cup.runtime.Symbol;
+import java.util.LinkedList;
 
 %%
 
-%class Lexer
-%public
-%line
-%column
-%cup
-%unicode
-
+// ========================================================================================
+// CÓDIGO DE USUARIO
+// ========================================================================================
 %{
-    // Método auxiliar para crear símbolos con información de posición
-    private Symbol symbol(int type) {
-        return new Symbol(type, yyline + 1, yycolumn + 1);
-    }
-
-    private Symbol symbol(int type, Object value) {
-        return new Symbol(type, yyline + 1, yycolumn + 1, value);
+    // Lista para almacenar errores léxicos encontrados durante el análisis
+    public LinkedList<String> erroresLexicos = new LinkedList<>();
+    
+    // Método auxiliar para agregar errores léxicos
+    private void agregarError(String mensaje) {
+        String error = String.format("Error Léxico [Línea: %d, Columna: %d] - %s: '%s'",
+                                    yyline + 1, yycolumn + 1, mensaje, yytext());
+        erroresLexicos.add(error);
     }
 %}
 
-/* Definiciones de patrones regulares */
-WHITESPACE = [ \t\r\n]+
-DIGIT = [0-9]
-INTEGER = {DIGIT}+
-DECIMAL = {INTEGER}\.{INTEGER}
-NUMBER = {INTEGER}|{DECIMAL}
-IDENTIFIER = [a-zA-Z][a-zA-Z0-9_]*
+// Inicialización del analizador
+%init{
+    yyline = 1;
+    yycolumn = 1;
+    erroresLexicos = new LinkedList<>();
+%init}
+
+// ========================================================================================
+// OPCIONES DE JFLEX
+// ========================================================================================
+%cup                    // Integración con CUP
+%class Lexer            // Nombre de la clase generada
+%public                 // Clase pública
+%line                   // Activar contador de líneas (yyline)
+%column                 // Activar contador de columnas (yycolumn)
+%char                   // Activar contador de caracteres (yychar)
+%unicode                // Soporte Unicode completo
+
+// ========================================================================================
+// EXPRESIONES REGULARES
+// ========================================================================================
+
+// Espacios en blanco y saltos de línea
+BLANCOS = [ \r\t\f\n]+
+
+// Números
+ENTERO = [0-9]+
+DECIMAL = [0-9]+"."[0-9]+
+
+// Operadores aritméticos
+MAS = "+"
+MENOS = "-"
+MULT = "*"
+DIV = "/"
+
+// Operadores relacionales (IMPORTANTE: los compuestos primero)
+IGUAL = "=="
+DIFERENTE = "!="
+MAYOR_IGUAL = ">="
+MENOR_IGUAL = "<="
+MAYOR = ">"
+MENOR = "<"
+
+// Operadores lógicos
+AND = "&&"
+OR = "||"
+NOT = "!"
+
+// Símbolos especiales
+PARENT_IZQ = "("
+PARENT_DER = ")"
 
 %%
 
-/* Reglas léxicas */
+// ========================================================================================
+// REGLAS LÉXICAS
+// ========================================================================================
 
-/* Ignorar espacios en blanco */
-{WHITESPACE}    { /* Ignorar */ }
+// Ignorar espacios en blanco
+<YYINITIAL> {BLANCOS}       { /* Ignorar espacios en blanco */ }
 
-/* Números */
-{NUMBER}        { return symbol(sym.NUMBER, Double.parseDouble(yytext())); }
+// Operadores lógicos (PRIMERO, para evitar conflictos con !)
+<YYINITIAL> {AND}           { return new Symbol(sym.AND, yyline, yycolumn, yytext()); }
+<YYINITIAL> {OR}            { return new Symbol(sym.OR, yyline, yycolumn, yytext()); }
+<YYINITIAL> {NOT}           { return new Symbol(sym.NOT, yyline, yycolumn, yytext()); }
 
-/* Operadores aritméticos */
-"+"             { return symbol(sym.PLUS); }
-"-"             { return symbol(sym.MINUS); }
-"*"             { return symbol(sym.TIMES); }
-"/"             { return symbol(sym.DIVIDE); }
-"^"             { return symbol(sym.POWER); }
+// Operadores relacionales (ANTES que los símbolos simples)
+<YYINITIAL> {IGUAL}         { return new Symbol(sym.IGUAL, yyline, yycolumn, yytext()); }
+<YYINITIAL> {DIFERENTE}     { return new Symbol(sym.DIFERENTE, yyline, yycolumn, yytext()); }
+<YYINITIAL> {MAYOR_IGUAL}   { return new Symbol(sym.MAYOR_IGUAL, yyline, yycolumn, yytext()); }
+<YYINITIAL> {MENOR_IGUAL}   { return new Symbol(sym.MENOR_IGUAL, yyline, yycolumn, yytext()); }
+<YYINITIAL> {MAYOR}         { return new Symbol(sym.MAYOR, yyline, yycolumn, yytext()); }
+<YYINITIAL> {MENOR}         { return new Symbol(sym.MENOR, yyline, yycolumn, yytext()); }
 
-/* Paréntesis */
-"("             { return symbol(sym.LPAREN); }
-")"             { return symbol(sym.RPAREN); }
+// Operadores aritméticos
+<YYINITIAL> {MAS}           { return new Symbol(sym.MAS, yyline, yycolumn, yytext()); }
+<YYINITIAL> {MENOS}         { return new Symbol(sym.MENOS, yyline, yycolumn, yytext()); }
+<YYINITIAL> {MULT}          { return new Symbol(sym.MULT, yyline, yycolumn, yytext()); }
+<YYINITIAL> {DIV}           { return new Symbol(sym.DIV, yyline, yycolumn, yytext()); }
 
-/* Identificadores (variables) */
-{IDENTIFIER}    { return symbol(sym.IDENTIFIER, yytext()); }
+// Paréntesis
+<YYINITIAL> {PARENT_IZQ}    { return new Symbol(sym.PARENT_IZQ, yyline, yycolumn, yytext()); }
+<YYINITIAL> {PARENT_DER}    { return new Symbol(sym.PARENT_DER, yyline, yycolumn, yytext()); }
 
-/* Asignación */
-"="             { return symbol(sym.EQUALS); }
+// Números (DECIMAL primero, para que reconozca el punto)
+<YYINITIAL> {DECIMAL}       { return new Symbol(sym.DECIMAL, yyline, yycolumn, yytext()); }
+<YYINITIAL> {ENTERO}        { return new Symbol(sym.ENTERO, yyline, yycolumn, yytext()); }
 
-/* Punto y coma */
-";"             { return symbol(sym.SEMICOLON); }
-
-/* Error: cualquier otro carácter */
-.               { throw new Error("Carácter ilegal <" + yytext() + "> en línea " + (yyline + 1) + ", columna " + (yycolumn + 1)); }
+// Errores léxicos
+<YYINITIAL> .               { 
+                                agregarError("Símbolo no reconocido");
+                                return new Symbol(sym.error, yyline, yycolumn, yytext());
+                            }

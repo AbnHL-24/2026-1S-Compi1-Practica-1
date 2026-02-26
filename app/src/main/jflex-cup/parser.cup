@@ -1,143 +1,255 @@
 /* ========================================================================================
-   ANALIZADOR SINTÁCTICO - Calculadora Simple
-   Generado por Java CUP para el curso de Compiladores 1
+   ANALIZADOR SINTÁCTICO - Evaluador de Expresiones
+   Curso: Compiladores 1 - Práctica 1
    
-   Gramática: Expresiones aritméticas con precedencia de operadores
-   - Suma y resta (menor precedencia)
-   - Multiplicación y división
-   - Potencia (mayor precedencia)
+   Este analizador evalúa:
+   - Expresiones aritméticas: + - * / con precedencia correcta
+   - Expresiones relacionales: == != < > <= >=
+   - Expresiones lógicas: && || !
    - Paréntesis para agrupar
-   - Variables y asignación
    ======================================================================================== */
 
 package com.abn.app_compi1_practica1.compiler;
 
-import java_cup.runtime.*;
+// Importaciones
+import java_cup.runtime.Symbol;
+import java.util.LinkedList;
 import java.util.HashMap;
-import java.io.StringReader;
 
-/* Código del parser */
+// ========================================================================================
+// CÓDIGO DEL PARSER
+// ========================================================================================
 parser code {:
-    // Tabla de símbolos para almacenar variables
-    private HashMap<String, Double> symbolTable = new HashMap<>();
+    // Lista para almacenar errores sintácticos
+    public LinkedList<String> erroresSintacticos = new LinkedList<>();
     
-    // Método para reportar errores
-    public void report_error(String message, Object info) {
-        StringBuilder m = new StringBuilder("Error sintáctico");
-        
-        if (info instanceof Symbol) {
-            Symbol s = (Symbol) info;
-            if (s.left >= 0) {                
-                m.append(" en línea ").append(s.left);
-                if (s.right >= 0) {
-                    m.append(", columna ").append(s.right);
-                }
-            }
-        }
-        
-        m.append(": ").append(message);
-        System.err.println(m);
-    }
-   
-    public void report_fatal_error(String message, Object info) {
-        report_error(message, info);
-        throw new RuntimeException("Error fatal en el análisis sintáctico");
+    // Lista para el reporte de operadores matemáticos
+    public LinkedList<HashMap<String, Object>> reporteOperadores = new LinkedList<>();
+    
+    // Método para agregar operadores al reporte
+    public void agregarOperador(String operador, int linea, int columna, String ocurrencia) {
+        HashMap<String, Object> op = new HashMap<>();
+        op.put("operador", operador);
+        op.put("linea", linea + 1);  // Sumar 1 porque yyline empieza en 0
+        op.put("columna", columna + 1);
+        op.put("ocurrencia", ocurrencia);
+        reporteOperadores.add(op);
     }
     
-    // Método para obtener el valor de una variable
-    public Double getVariable(String name) {
-        return symbolTable.getOrDefault(name, 0.0);
+    // Manejo de errores sintácticos recuperables
+    public void syntax_error(Symbol simbolo) {
+        String error = String.format("Error Sintáctico [Línea: %d, Columna: %d] - No se esperaba: '%s'",
+                                    simbolo.left + 1, simbolo.right + 1, simbolo.value);
+        erroresSintacticos.add(error);
     }
     
-    // Método para establecer el valor de una variable
-    public void setVariable(String name, Double value) {
-        symbolTable.put(name, value);
+    // Manejo de errores sintácticos no recuperables
+    public void unrecovered_syntax_error(Symbol simbolo) {
+        String error = String.format("Error Sintáctico No Recuperable [Línea: %d, Columna: %d] - No se pudo recuperar del error",
+                                    simbolo.left + 1, simbolo.right + 1);
+        erroresSintacticos.add(error);
     }
-    
-    // Método para obtener todas las variables
-    public HashMap<String, Double> getSymbolTable() {
-        return symbolTable;
-    }
-:};
+:}
 
-/* Terminales (tokens devueltos por el scanner) */
-terminal Double NUMBER;
-terminal String IDENTIFIER;
-terminal PLUS, MINUS, TIMES, DIVIDE, POWER;
-terminal LPAREN, RPAREN;
-terminal EQUALS, SEMICOLON;
+// ========================================================================================
+// CÓDIGO DE ACCIONES
+// ========================================================================================
+action code {:
+:}
 
-/* No terminales */
-non terminal Object program;
-non terminal Double expr;
-non terminal Object statement;
+// ========================================================================================
+// TERMINALES (TOKENS)
+// ========================================================================================
 
-/* Precedencia y asociatividad de operadores */
-precedence left PLUS, MINUS;
-precedence left TIMES, DIVIDE;
-precedence right POWER;
-precedence left LPAREN;
+// Literales
+terminal String ENTERO, DECIMAL;
 
-/* Gramática */
+// Operadores aritméticos
+terminal MAS, MENOS, MULT, DIV;
 
-start with program;
+// Operadores relacionales
+terminal IGUAL, DIFERENTE, MAYOR, MENOR, MAYOR_IGUAL, MENOR_IGUAL;
 
-program ::= 
-    statement:s
-    {: RESULT = s; :}
-    | program statement:s
-    {: RESULT = s; :}
-    ;
+// Operadores lógicos
+terminal AND, OR, NOT;
 
-statement ::=
-    expr:e SEMICOLON
-    {: 
-        System.out.println("Resultado: " + e);
-        RESULT = e; 
-    :}
-    | IDENTIFIER:id EQUALS expr:e SEMICOLON
+// Símbolos especiales
+terminal PARENT_IZQ, PARENT_DER;
+
+// ========================================================================================
+// NO TERMINALES
+// ========================================================================================
+
+nonterminal Object EXPRESION;
+nonterminal Double EXPRESION_ARITMETICA;
+nonterminal Boolean EXPRESION_RELACIONAL;
+nonterminal Boolean EXPRESION_LOGICA;
+
+// ========================================================================================
+// PRECEDENCIA Y ASOCIATIVIDAD
+// ========================================================================================
+
+// Precedencia de operadores (de menor a mayor)
+precedence left OR;
+precedence left AND;
+precedence right NOT;
+precedence left IGUAL, DIFERENTE, MAYOR, MENOR, MAYOR_IGUAL, MENOR_IGUAL;
+precedence left MAS, MENOS;
+precedence left MULT, DIV;
+
+// ========================================================================================
+// GRAMÁTICA
+// ========================================================================================
+
+start with EXPRESION;
+
+// Expresión principal (puede ser aritmética, relacional o lógica)
+EXPRESION ::= 
+    EXPRESION_LOGICA:e
     {:
-        parser.setVariable(id, e);
-        System.out.println("Variable " + id + " = " + e);
         RESULT = e;
     :}
-    | expr:e
-    {: RESULT = e; :}
+    | EXPRESION_RELACIONAL:e
+    {:
+        RESULT = e;
+    :}
+    | EXPRESION_ARITMETICA:e
+    {:
+        RESULT = e;
+    :}
     ;
 
-expr ::=
-    NUMBER:n
-    {: RESULT = n; :}
-    
-    | IDENTIFIER:id
-    {: RESULT = parser.getVariable(id); :}
-    
-    | expr:e1 PLUS expr:e2
-    {: RESULT = e1 + e2; :}
-    
-    | expr:e1 MINUS expr:e2
-    {: RESULT = e1 - e2; :}
-    
-    | expr:e1 TIMES expr:e2
-    {: RESULT = e1 * e2; :}
-    
-    | expr:e1 DIVIDE expr:e2
+// ========================================================================================
+// EXPRESIONES ARITMÉTICAS
+// ========================================================================================
+
+EXPRESION_ARITMETICA ::= 
+    // Suma
+    EXPRESION_ARITMETICA:e1 MAS EXPRESION_ARITMETICA:e2
     {:
-        if (e2 == 0) {
-            parser.report_error("División por cero", null);
+        parser.agregarOperador("Suma", e1left, e1right, e1 + " + " + e2);
+        RESULT = e1 + e2;
+    :}
+    
+    // Resta
+    | EXPRESION_ARITMETICA:e1 MENOS EXPRESION_ARITMETICA:e2
+    {:
+        parser.agregarOperador("Resta", e1left, e1right, e1 + " - " + e2);
+        RESULT = e1 - e2;
+    :}
+    
+    // Multiplicación
+    | EXPRESION_ARITMETICA:e1 MULT EXPRESION_ARITMETICA:e2
+    {:
+        parser.agregarOperador("Multiplicación", e1left, e1right, e1 + " * " + e2);
+        RESULT = e1 * e2;
+    :}
+    
+    // División
+    | EXPRESION_ARITMETICA:e1 DIV EXPRESION_ARITMETICA:e2
+    {:
+        parser.agregarOperador("División", e1left, e1right, e1 + " / " + e2);
+        if (e2 == 0.0) {
+            parser.syntax_error(new Symbol(sym.DIV, e2left, e2right, "División por cero"));
             RESULT = 0.0;
         } else {
             RESULT = e1 / e2;
         }
     :}
     
-    | expr:e1 POWER expr:e2
-    {: RESULT = Math.pow(e1, e2); :}
+    // Negación unaria
+    | MENOS EXPRESION_ARITMETICA:e
+    {:
+        RESULT = -e;
+    :}
     
-    | MINUS expr:e
-    {: RESULT = -e; :}
-    %prec TIMES
+    // Paréntesis
+    | PARENT_IZQ EXPRESION_ARITMETICA:e PARENT_DER
+    {:
+        RESULT = e;
+    :}
     
-    | LPAREN expr:e RPAREN
-    {: RESULT = e; :}
+    // Número decimal
+    | DECIMAL:n
+    {:
+        RESULT = Double.parseDouble(n);
+    :}
+    
+    // Número entero
+    | ENTERO:n
+    {:
+        RESULT = Double.parseDouble(n);
+    :}
+    ;
+
+// ========================================================================================
+// EXPRESIONES RELACIONALES
+// ========================================================================================
+
+EXPRESION_RELACIONAL ::= 
+    // Igualdad
+    EXPRESION_ARITMETICA:e1 IGUAL EXPRESION_ARITMETICA:e2
+    {:
+        RESULT = e1.equals(e2);
+    :}
+    
+    // Diferente
+    | EXPRESION_ARITMETICA:e1 DIFERENTE EXPRESION_ARITMETICA:e2
+    {:
+        RESULT = !e1.equals(e2);
+    :}
+    
+    // Mayor que
+    | EXPRESION_ARITMETICA:e1 MAYOR EXPRESION_ARITMETICA:e2
+    {:
+        RESULT = e1 > e2;
+    :}
+    
+    // Menor que
+    | EXPRESION_ARITMETICA:e1 MENOR EXPRESION_ARITMETICA:e2
+    {:
+        RESULT = e1 < e2;
+    :}
+    
+    // Mayor o igual
+    | EXPRESION_ARITMETICA:e1 MAYOR_IGUAL EXPRESION_ARITMETICA:e2
+    {:
+        RESULT = e1 >= e2;
+    :}
+    
+    // Menor o igual
+    | EXPRESION_ARITMETICA:e1 MENOR_IGUAL EXPRESION_ARITMETICA:e2
+    {:
+        RESULT = e1 <= e2;
+    :}
+    ;
+
+// ========================================================================================
+// EXPRESIONES LÓGICAS
+// ========================================================================================
+
+EXPRESION_LOGICA ::= 
+    // AND lógico
+    EXPRESION_RELACIONAL:e1 AND EXPRESION_RELACIONAL:e2
+    {:
+        RESULT = e1 && e2;
+    :}
+    
+    // OR lógico
+    | EXPRESION_RELACIONAL:e1 OR EXPRESION_RELACIONAL:e2
+    {:
+        RESULT = e1 || e2;
+    :}
+    
+    // NOT lógico
+    | NOT EXPRESION_RELACIONAL:e
+    {:
+        RESULT = !e;
+    :}
+    
+    // Paréntesis
+    | PARENT_IZQ EXPRESION_LOGICA:e PARENT_DER
+    {:
+        RESULT = e;
+    :}
     ;

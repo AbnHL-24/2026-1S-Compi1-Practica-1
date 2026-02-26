@@ -4,13 +4,15 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.abn.app_compi1_practica1.ui.theme.AppCompi1Practica1Theme
 import com.abn.app_compi1_practica1.compiler.Lexer
 import com.abn.app_compi1_practica1.compiler.Parser
@@ -21,82 +23,211 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
-        // ==================================================================================
-        // EJEMPLO DE USO DEL COMPILADOR (JFlex + CUP)
-        // ==================================================================================
-        demonstrateCompiler()
-        
         setContent {
             AppCompi1Practica1Theme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    EvaluadorExpresionesScreen()
                 }
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EvaluadorExpresionesScreen() {
+    // Estado para el texto de entrada
+    var textoExpresion by remember { mutableStateOf("") }
     
-    /**
-     * Función que demuestra el uso del compilador (Lexer + Parser)
-     * generado automáticamente por JFlex y CUP
-     */
-    private fun demonstrateCompiler() {
-        println("\n==================== COMPILADOR DE EXPRESIONES ====================")
+    // Estado para los resultados
+    var resultado by remember { mutableStateOf<String?>(null) }
+    var errores by remember { mutableStateOf<List<String>>(emptyList()) }
+    var reporteOperadores by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        // Título
+        Text(
+            text = "Evaluador de Expresiones",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
         
-        try {
-            // Ejemplo 1: Expresión aritmética simple
-            val expresion1 = "2 + 3 * 4"
-            val resultado1 = evaluarExpresion(expresion1)
-            println("✅ $expresion1 = $resultado1")
-            
-            // Ejemplo 2: Expresión con paréntesis
-            val expresion2 = "(2 + 3) * 4"
-            val resultado2 = evaluarExpresion(expresion2)
-            println("✅ $expresion2 = $resultado2")
-            
-            // Ejemplo 3: Expresión con potencias
-            val expresion3 = "2 ^ 3 + 1"
-            val resultado3 = evaluarExpresion(expresion3)
-            println("✅ $expresion3 = $resultado3")
-            
-            // Ejemplo 4: Variables
-            val expresion4 = "x = 10; y = 20; x + y"
-            val resultado4 = evaluarExpresion(expresion4)
-            println("✅ Variables: x + y = $resultado4")
-            
-            println("====================================================================\n")
-            
-        } catch (e: Exception) {
-            println("❌ Error en el compilador: ${e.message}")
-            e.printStackTrace()
+        // Campo de texto para la expresión
+        OutlinedTextField(
+            value = textoExpresion,
+            onValueChange = { textoExpresion = it },
+            label = { Text("Ingrese expresión") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(150.dp),
+            placeholder = { 
+                Text(
+                    "Ejemplos:\n" +
+                    "2 + 3 * 4\n" +
+                    "(10 - 5) / 2\n" +
+                    "5 > 3\n" +
+                    "10 >= 5 && 3 < 8"
+                ) 
+            },
+            maxLines = 6
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Botón para evaluar
+        Button(
+            onClick = {
+                try {
+                    // Limpiar resultados anteriores
+                    resultado = null
+                    errores = emptyList()
+                    reporteOperadores = emptyList()
+                    
+                    // Crear el lexer y parser
+                    val lexer = Lexer(StringReader(textoExpresion))
+                    val parser = Parser(lexer)
+                    
+                    // Parsear y evaluar
+                    val resultadoParseo = parser.parse()
+                    
+                    // Obtener errores léxicos y sintácticos
+                    val erroresLexicos = lexer.erroresLexicos
+                    val erroresSintacticos = parser.erroresSintacticos
+                    val todosLosErrores = mutableListOf<String>()
+                    todosLosErrores.addAll(erroresLexicos)
+                    todosLosErrores.addAll(erroresSintacticos)
+                    
+                    if (todosLosErrores.isEmpty()) {
+                        // Si no hay errores, mostrar el resultado
+                        resultado = "Resultado: ${resultadoParseo.value}"
+                        
+                        // Obtener reporte de operadores
+                        reporteOperadores = parser.reporteOperadores.map { it.toMap() }
+                    } else {
+                        // Si hay errores, mostrarlos
+                        errores = todosLosErrores
+                    }
+                    
+                } catch (e: Exception) {
+                    errores = listOf("Error: ${e.message}")
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Evaluar")
         }
-    }
-    
-    /**
-     * Evalúa una expresión aritmética usando el compilador generado
-     */
-    private fun evaluarExpresion(expresion: String): Any? {
-        val lexer = Lexer(StringReader(expresion))
-        val parser = Parser(lexer)
-        val resultado = parser.parse()
-        return resultado.value
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    AppCompi1Practica1Theme {
-        Greeting("Android")
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Área de resultados
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
+                // Mostrar resultado si existe
+                if (resultado != null) {
+                    item {
+                        Text(
+                            text = resultado!!,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                }
+                
+                // Mostrar reporte de operadores
+                if (reporteOperadores.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Reporte de Operadores:",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                    
+                    items(reporteOperadores) { operador ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp)
+                            ) {
+                                Text(
+                                    text = "Operador: ${operador["operador"]}",
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(text = "Línea: ${operador["linea"]}, Columna: ${operador["columna"]}")
+                                Text(text = "Ocurrencia: ${operador["ocurrencia"]}")
+                            }
+                        }
+                    }
+                }
+                
+                // Mostrar errores si existen
+                if (errores.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Errores:",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                    
+                    items(errores) { error ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer
+                            )
+                        ) {
+                            Text(
+                                text = error,
+                                modifier = Modifier.padding(12.dp),
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                    }
+                }
+                
+                // Mensaje inicial si no hay nada
+                if (resultado == null && errores.isEmpty()) {
+                    item {
+                        Text(
+                            text = "Ingrese una expresión y presione 'Evaluar'",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
     }
 }
