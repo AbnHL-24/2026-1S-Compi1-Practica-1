@@ -34,6 +34,9 @@ import com.abn.app_compi1_practica1.interprete.expresiones.OperadorLogico;
 import com.abn.app_compi1_practica1.interprete.instrucciones.Instruccion;
 import com.abn.app_compi1_practica1.interprete.instrucciones.Declaracion;
 import com.abn.app_compi1_practica1.interprete.instrucciones.Asignacion;
+import com.abn.app_compi1_practica1.interprete.instrucciones.Mostrar;
+import com.abn.app_compi1_practica1.interprete.instrucciones.Leer;
+import com.abn.app_compi1_practica1.interprete.instrucciones.Si;
 
 // ========================================================================================
 // CÓDIGO DEL PARSER
@@ -171,9 +174,9 @@ nonterminal LinkedList<Object> INSTRUCCIONES;
 nonterminal Object INSTRUCCION;
 nonterminal Instruccion DECLARACION;
 nonterminal Instruccion ASIGNACION_VAR;
-nonterminal Object MOSTRAR_INST;
-nonterminal Object LEER_INST;
-nonterminal Object CONDICIONAL_SI;
+nonterminal Instruccion MOSTRAR_INST;
+nonterminal Instruccion LEER_INST;
+nonterminal Instruccion CONDICIONAL_SI;
 nonterminal Object CICLO_MIENTRAS;
 nonterminal LinkedList<Object> BLOQUE;
 nonterminal Expresion EXPRESION;
@@ -322,15 +325,13 @@ ASIGNACION_VAR ::=
 MOSTRAR_INST ::=
     MOSTRAR CADENA:texto
     {:
-        // Remover las comillas de la cadena
-        String textoLimpio = texto.substring(1, texto.length() - 1);
-        // Procesar secuencias de escape
-        textoLimpio = textoLimpio.replace("\\\"", "\"");
-        textoLimpio = textoLimpio.replace("\\n", "\n");
-        textoLimpio = textoLimpio.replace("\\t", "\t");
+        // Construir objeto AST para MOSTRAR
+        Mostrar mostrar = new Mostrar(texto, parser.salida);
         
-        parser.agregarSalida(textoLimpio);
-        RESULT = textoLimpio;
+        // Ejecutar la instrucción
+        mostrar.ejecutar(parser.entorno);
+        
+        RESULT = mostrar;
     :}
     ;
 
@@ -341,8 +342,16 @@ MOSTRAR_INST ::=
 LEER_INST ::=
     LEER ID:nombre
     {:
+        // Construir objeto AST para LEER
+        Leer leer = new Leer(nombre, parser.entradaSimulada, parser.salida);
+        
+        // Ejecutar la instrucción
+        leer.ejecutar(parser.entorno);
+        
+        // TEMPORAL: También actualizar tabla antigua para compatibilidad
         parser.leerVariable(nombre);
-        RESULT = "LEER " + nombre;
+        
+        RESULT = leer;
     :}
     ;
 
@@ -372,51 +381,48 @@ CONDICIONAL_SI ::=
     // SI (condicion) ENTONCES bloque FINSI
     SI PARENT_IZQ EXPRESION:condicionExpr PARENT_DER ENTONCES BLOQUE:bloqueVerdadero FINSI
     {:
-        // Interpretar la condición
-        Object condObj = condicionExpr.interpretar(parser.entorno);
-        boolean resultado = false;
-        if (condObj instanceof Boolean) {
-            resultado = (Boolean) condObj;
-        } else if (condObj instanceof Double) {
-            resultado = ((Double) condObj) != 0.0;
-        }
-        
-        // Ejecutar el bloque si la condición es verdadera
-        Object ultimoValor = null;
-        if (resultado) {
-            for (Object inst : bloqueVerdadero) {
-                ultimoValor = inst;
+        // Convertir LinkedList<Object> a List<Instruccion>
+        LinkedList<Instruccion> instruccionesVerdaderas = new LinkedList<Instruccion>();
+        for (Object obj : bloqueVerdadero) {
+            if (obj instanceof Instruccion) {
+                instruccionesVerdaderas.add((Instruccion) obj);
             }
         }
         
-        RESULT = "SI ejecutado - condición: " + resultado;
+        // Construir objeto AST para SI
+        Si si = new Si(condicionExpr, instruccionesVerdaderas, null);
+        
+        // Ejecutar la instrucción
+        si.ejecutar(parser.entorno);
+        
+        RESULT = si;
     :}
     
     // SI (condicion) ENTONCES bloque SINO bloque FINSI
     | SI PARENT_IZQ EXPRESION:condicionExpr PARENT_DER ENTONCES BLOQUE:bloqueVerdadero SINO BLOQUE:bloqueFalso FINSI
     {:
-        // Interpretar la condición
-        Object condObj = condicionExpr.interpretar(parser.entorno);
-        boolean resultado = false;
-        if (condObj instanceof Boolean) {
-            resultado = (Boolean) condObj;
-        } else if (condObj instanceof Double) {
-            resultado = ((Double) condObj) != 0.0;
-        }
-        
-        // Ejecutar el bloque correspondiente
-        Object ultimoValor = null;
-        if (resultado) {
-            for (Object inst : bloqueVerdadero) {
-                ultimoValor = inst;
-            }
-        } else {
-            for (Object inst : bloqueFalso) {
-                ultimoValor = inst;
+        // Convertir LinkedList<Object> a List<Instruccion>
+        LinkedList<Instruccion> instruccionesVerdaderas = new LinkedList<Instruccion>();
+        for (Object obj : bloqueVerdadero) {
+            if (obj instanceof Instruccion) {
+                instruccionesVerdaderas.add((Instruccion) obj);
             }
         }
         
-        RESULT = "SI ejecutado - condición: " + resultado;
+        LinkedList<Instruccion> instruccionesFalsas = new LinkedList<Instruccion>();
+        for (Object obj : bloqueFalso) {
+            if (obj instanceof Instruccion) {
+                instruccionesFalsas.add((Instruccion) obj);
+            }
+        }
+        
+        // Construir objeto AST para SI-SINO
+        Si si = new Si(condicionExpr, instruccionesVerdaderas, instruccionesFalsas);
+        
+        // Ejecutar la instrucción
+        si.ejecutar(parser.entorno);
+        
+        RESULT = si;
     :}
     ;
 
