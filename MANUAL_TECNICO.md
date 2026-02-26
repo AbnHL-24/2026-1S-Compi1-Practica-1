@@ -420,7 +420,7 @@ tasks.register("generateCompiler") {
 
 ---
 
-**Autor:** [Tu nombre]  
-**Curso:** Compiladores 1  
+**Autor:** Abner Alberto Hernández López
+**Carnet:** 201730191
 **Fecha:** Febrero 2026  
 **Versión:** 1.0

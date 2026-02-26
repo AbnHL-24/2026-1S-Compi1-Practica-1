@@ -30,32 +30,12 @@ La aplicación tiene 3 pestañas principales:
 
 ```
 ┌─────────────────────────────────────┐
-│  [Editor] [Salida] [Reportes]      │
+│  [Editor]                           │
 ├─────────────────────────────────────┤
-│                                     │
-│  (Contenido de la pestaña activa)  │
-│                                     │
+│  (Boton ejecutar)                   │
 ├─────────────────────────────────────┤
-│         [Ejecutar Código]           │
+│  [Salida] [Reportes]                │
 └─────────────────────────────────────┘
-```
-
-#### **Pestaña Editor:**
-- Editor de texto con números de línea
-- Fuente monoespaciada para mejor legibilidad
-- Scroll vertical para códigos largos
-
-#### **Pestaña Salida:**
-- Muestra los resultados de `MOSTRAR`
-- Muestra errores léxicos y sintácticos
-- Mensaje de éxito cuando el código funciona
-
-#### **Pestaña Reportes:**
-- Reporte de operadores usados
-- Reporte de estructuras de control
-- Información de línea y columna
-
----
 
 ## 3. Sintaxis del Pseudocódigo
 
@@ -559,9 +539,9 @@ MOSTRAR nombre
 
 Si encuentras problemas o tienes sugerencias:
 
-- 📧 **Email:** [tu-email@ejemplo.com]
+- 📧 **Email:** abneralberto-hernandezlopez@cunoc.edu.gt
 - 📚 **Documentación técnica:** Ver `MANUAL_TECNICO.md`
-- 💻 **Código fuente:** [URL del repositorio]
+- 💻 **Código fuente:** https://github.com/AbnHL-24/2026-1S-Compi1-Practica-1
 
 ---
 
