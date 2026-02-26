@@ -61,20 +61,34 @@ parser code {:
     // Lista para almacenar errores sintácticos
     public LinkedList<String> erroresSintacticos = new LinkedList<>();
     
-    // Lista para el reporte de operadores matemáticos
+    // Lista para el reporte de operadores (aritméticos, relacionales, lógicos)
     public LinkedList<HashMap<String, Object>> reporteOperadores = new LinkedList<>();
+    
+    // Lista para el reporte de estructuras de control (SI, MIENTRAS)
+    public LinkedList<HashMap<String, Object>> reporteEstructuras = new LinkedList<>();
     
     // Resultado de la última expresión evaluada
     public Object ultimoResultado = null;
     
     // Método para agregar operadores al reporte
-    public void agregarOperador(String operador, int linea, int columna, String ocurrencia) {
+    public void agregarOperador(String tipo, String operador, int linea, int columna, String ocurrencia) {
         HashMap<String, Object> op = new HashMap<>();
+        op.put("tipo", tipo);  // "Aritmético", "Relacional", "Lógico"
         op.put("operador", operador);
         op.put("linea", linea + 1);  // Sumar 1 porque yyline empieza en 0
         op.put("columna", columna + 1);
         op.put("ocurrencia", ocurrencia);
         reporteOperadores.add(op);
+    }
+    
+    // Método para agregar estructuras de control al reporte
+    public void agregarEstructura(String tipo, String condicion, int linea, int columna) {
+        HashMap<String, Object> est = new HashMap<>();
+        est.put("tipo", tipo);  // "SI", "MIENTRAS"
+        est.put("condicion", condicion);
+        est.put("linea", linea + 1);
+        est.put("columna", columna + 1);
+        reporteEstructuras.add(est);
     }
     
     // Métodos para manejar la tabla de símbolos
@@ -388,6 +402,9 @@ CONDICIONAL_SI ::=
     // SI (condicion) ENTONCES bloque FINSI
     SI PARENT_IZQ EXPRESION:condicionExpr PARENT_DER ENTONCES BLOQUE:bloqueVerdadero FINSI
     {:
+        // Agregar al reporte de estructuras
+        parser.agregarEstructura("SI", condicionExpr.toString(), condicionExprleft, condicionExprright);
+        
         // Construir objeto AST para SI
         Si si = new Si(condicionExpr, bloqueVerdadero, null);
         
@@ -400,6 +417,9 @@ CONDICIONAL_SI ::=
     // SI (condicion) ENTONCES bloque SINO bloque FINSI
     | SI PARENT_IZQ EXPRESION:condicionExpr PARENT_DER ENTONCES BLOQUE:bloqueVerdadero SINO BLOQUE:bloqueFalso FINSI
     {:
+        // Agregar al reporte de estructuras
+        parser.agregarEstructura("SI-SINO", condicionExpr.toString(), condicionExprleft, condicionExprright);
+        
         // Construir objeto AST para SI-SINO
         Si si = new Si(condicionExpr, bloqueVerdadero, bloqueFalso);
         
@@ -418,6 +438,9 @@ CICLO_MIENTRAS ::=
     // MIENTRAS (condicion) HACER bloque FINMIENTRAS
     MIENTRAS PARENT_IZQ EXPRESION:condicionExpr PARENT_DER HACER BLOQUE:bloque FINMIENTRAS
     {:
+        // Agregar al reporte de estructuras
+        parser.agregarEstructura("MIENTRAS", condicionExpr.toString(), condicionExprleft, condicionExprright);
+        
         // Construir objeto AST para MIENTRAS
         Mientras mientras = new Mientras(condicionExpr, bloque);
         
@@ -456,34 +479,35 @@ EXPRESION_ARITMETICA ::=
     // Suma
     EXPRESION_ARITMETICA:e1 MAS EXPRESION_ARITMETICA:e2
     {:
-        parser.agregarOperador("Suma", e1left, e1right, e1 + " + " + e2);
+        parser.agregarOperador("Aritmético", "Suma (+)", e1left, e1right, e1.toString() + " + " + e2.toString());
         RESULT = new OperacionAritmetica(OperadorAritmetico.SUMA, e1, e2);
     :}
     
     // Resta
     | EXPRESION_ARITMETICA:e1 MENOS EXPRESION_ARITMETICA:e2
     {:
-        parser.agregarOperador("Resta", e1left, e1right, e1 + " - " + e2);
+        parser.agregarOperador("Aritmético", "Resta (-)", e1left, e1right, e1.toString() + " - " + e2.toString());
         RESULT = new OperacionAritmetica(OperadorAritmetico.RESTA, e1, e2);
     :}
     
     // Multiplicación
     | EXPRESION_ARITMETICA:e1 MULT EXPRESION_ARITMETICA:e2
     {:
-        parser.agregarOperador("Multiplicación", e1left, e1right, e1 + " * " + e2);
+        parser.agregarOperador("Aritmético", "Multiplicación (*)", e1left, e1right, e1.toString() + " * " + e2.toString());
         RESULT = new OperacionAritmetica(OperadorAritmetico.MULTIPLICACION, e1, e2);
     :}
     
     // División
     | EXPRESION_ARITMETICA:e1 DIV EXPRESION_ARITMETICA:e2
     {:
-        parser.agregarOperador("División", e1left, e1right, e1 + " / " + e2);
+        parser.agregarOperador("Aritmético", "División (/)", e1left, e1right, e1.toString() + " / " + e2.toString());
         RESULT = new OperacionAritmetica(OperadorAritmetico.DIVISION, e1, e2);
     :}
     
     // Negación unaria
     | MENOS EXPRESION_ARITMETICA:e
     {:
+        parser.agregarOperador("Aritmético", "Negación Unaria (-)", eleft, eright, "-" + e.toString());
         RESULT = new OperacionAritmetica(OperadorAritmetico.NEGACION_UNARIA, e);
     :}
     
@@ -520,36 +544,42 @@ EXPRESION_RELACIONAL ::=
     // Igualdad
     EXPRESION_ARITMETICA:e1 IGUAL EXPRESION_ARITMETICA:e2
     {:
+        parser.agregarOperador("Relacional", "Igual (==)", e1left, e1right, e1.toString() + " == " + e2.toString());
         RESULT = new OperacionRelacional(OperadorRelacional.IGUAL, e1, e2);
     :}
     
     // Diferente
     | EXPRESION_ARITMETICA:e1 DIFERENTE EXPRESION_ARITMETICA:e2
     {:
+        parser.agregarOperador("Relacional", "Diferente (!=)", e1left, e1right, e1.toString() + " != " + e2.toString());
         RESULT = new OperacionRelacional(OperadorRelacional.DIFERENTE, e1, e2);
     :}
     
     // Mayor que
     | EXPRESION_ARITMETICA:e1 MAYOR EXPRESION_ARITMETICA:e2
     {:
+        parser.agregarOperador("Relacional", "Mayor (>)", e1left, e1right, e1.toString() + " > " + e2.toString());
         RESULT = new OperacionRelacional(OperadorRelacional.MAYOR, e1, e2);
     :}
     
     // Menor que
     | EXPRESION_ARITMETICA:e1 MENOR EXPRESION_ARITMETICA:e2
     {:
+        parser.agregarOperador("Relacional", "Menor (<)", e1left, e1right, e1.toString() + " < " + e2.toString());
         RESULT = new OperacionRelacional(OperadorRelacional.MENOR, e1, e2);
     :}
     
     // Mayor o igual
     | EXPRESION_ARITMETICA:e1 MAYOR_IGUAL EXPRESION_ARITMETICA:e2
     {:
+        parser.agregarOperador("Relacional", "Mayor o Igual (>=)", e1left, e1right, e1.toString() + " >= " + e2.toString());
         RESULT = new OperacionRelacional(OperadorRelacional.MAYOR_IGUAL, e1, e2);
     :}
     
     // Menor o igual
     | EXPRESION_ARITMETICA:e1 MENOR_IGUAL EXPRESION_ARITMETICA:e2
     {:
+        parser.agregarOperador("Relacional", "Menor o Igual (<=)", e1left, e1right, e1.toString() + " <= " + e2.toString());
         RESULT = new OperacionRelacional(OperadorRelacional.MENOR_IGUAL, e1, e2);
     :}
     ;
@@ -562,18 +592,21 @@ EXPRESION_LOGICA ::=
     // AND lógico
     EXPRESION_RELACIONAL:e1 AND EXPRESION_RELACIONAL:e2
     {:
+        parser.agregarOperador("Lógico", "AND (&&)", e1left, e1right, e1.toString() + " && " + e2.toString());
         RESULT = new OperacionLogica(OperadorLogico.AND, e1, e2);
     :}
     
     // OR lógico
     | EXPRESION_RELACIONAL:e1 OR EXPRESION_RELACIONAL:e2
     {:
+        parser.agregarOperador("Lógico", "OR (||)", e1left, e1right, e1.toString() + " || " + e2.toString());
         RESULT = new OperacionLogica(OperadorLogico.OR, e1, e2);
     :}
     
     // NOT lógico
     | NOT EXPRESION_RELACIONAL:e
     {:
+        parser.agregarOperador("Lógico", "NOT (!)", eleft, eright, "!" + e.toString());
         RESULT = new OperacionLogica(OperadorLogico.NOT, e);
     :}
     

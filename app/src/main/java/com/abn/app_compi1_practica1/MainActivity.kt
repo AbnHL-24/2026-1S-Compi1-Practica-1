@@ -39,14 +39,105 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EvaluadorExpresionesScreen() {
+    // Texto de prueba completo que ejercita todas las funcionalidades
+    val textoPruebaCompleto = """
+// ===================================
+// PRUEBA COMPLETA DEL INTÉRPRETE
+// ===================================
+
+// 1. DECLARACIÓN Y OPERACIONES ARITMÉTICAS
+VAR a = 10
+VAR b = 5
+VAR suma = a + b
+VAR resta = a - b
+VAR mult = a * b
+VAR division = a / b
+VAR negativo = -a
+
+MOSTRAR "=== Operaciones Aritméticas ==="
+MOSTRAR "Suma: "
+MOSTRAR suma
+MOSTRAR "Resta: "
+MOSTRAR resta
+MOSTRAR "Multiplicación: "
+MOSTRAR mult
+MOSTRAR "División: "
+MOSTRAR division
+
+// 2. OPERACIONES RELACIONALES
+VAR mayor = a > b
+VAR menor = a < b
+VAR igual = a == b
+VAR diferente = a != b
+
+MOSTRAR "=== Operaciones Relacionales ==="
+MOSTRAR "10 > 5: "
+MOSTRAR mayor
+
+// 3. OPERACIONES LÓGICAS
+VAR resultado_and = (a > 5) && (b < 10)
+VAR resultado_or = (a < 5) || (b > 3)
+
+MOSTRAR "=== Operaciones Lógicas ==="
+MOSTRAR "AND lógico: "
+MOSTRAR resultado_and
+
+// 4. ESTRUCTURA CONDICIONAL SI-ENTONCES
+VAR numero = 8
+SI (numero > 5) ENTONCES
+    MOSTRAR "=== Condicional SI ==="
+    MOSTRAR "El número es mayor que 5"
+FINSI
+
+// 5. ESTRUCTURA CONDICIONAL SI-ENTONCES-SINO
+VAR edad = 17
+SI (edad >= 18) ENTONCES
+    MOSTRAR "=== Condicional SI-SINO ==="
+    MOSTRAR "Mayor de edad"
+SINO
+    MOSTRAR "=== Condicional SI-SINO ==="
+    MOSTRAR "Menor de edad"
+FINSI
+
+// 6. CICLO MIENTRAS
+VAR contador = 0
+VAR limite = 5
+
+MOSTRAR "=== Ciclo MIENTRAS ==="
+MIENTRAS (contador < limite) HACER
+    MOSTRAR "Iteración: "
+    MOSTRAR contador
+    contador = contador + 1
+FINMIENTRAS
+
+// 7. OPERACIONES COMPLEJAS ANIDADAS
+VAR x = 10
+VAR y = 20
+VAR z = 0
+
+SI ((x + y) > 25) ENTONCES
+    MIENTRAS (z < 3) HACER
+        SI (z == 1) ENTONCES
+            MOSTRAR "=== Estructuras Anidadas ==="
+            MOSTRAR "Z es igual a 1"
+        FINSI
+        z = z + 1
+    FINMIENTRAS
+FINSI
+
+MOSTRAR "=== FIN DE LA PRUEBA ==="
+MOSTRAR "Todas las funcionalidades validadas"
+""".trimIndent()
+    
     // Estado para el texto de entrada con ejemplo inicial
-    var textoExpresion by remember { mutableStateOf("VAR contador = 0\nMIENTRAS (contador < 5) HACER\n    MOSTRAR \"Contador: \"\n    contador = contador + 1\nFINMIENTRAS\nMOSTRAR \"Fin del ciclo\"") }
+    var textoExpresion by remember { mutableStateOf(textoPruebaCompleto) }
     
     // Estado para los resultados
     var resultado by remember { mutableStateOf<String?>(null) }
     var salida by remember { mutableStateOf<List<String>>(emptyList()) }
     var errores by remember { mutableStateOf<List<String>>(emptyList()) }
     var reporteOperadores by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
+    var reporteEstructuras by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
     
     Column(
         modifier = Modifier
@@ -93,6 +184,7 @@ fun EvaluadorExpresionesScreen() {
                     salida = emptyList()
                     errores = emptyList()
                     reporteOperadores = emptyList()
+                    reporteEstructuras = emptyList()
                     
                     // Crear el lexer y parser
                     val lexer = Lexer(StringReader(textoExpresion))
@@ -130,6 +222,9 @@ fun EvaluadorExpresionesScreen() {
                         
                         // Obtener reporte de operadores
                         reporteOperadores = parser.reporteOperadores.map { it.toMap() }
+                        
+                        // Obtener reporte de estructuras de control
+                        reporteEstructuras = parser.reporteEstructuras.map { it.toMap() }
                     } else {
                         // Si hay errores, mostrarlos
                         errores = todosLosErrores
@@ -232,13 +327,55 @@ fun EvaluadorExpresionesScreen() {
                                 modifier = Modifier.padding(12.dp)
                             ) {
                                 Text(
-                                    text = "Operador: ${operador["operador"]}",
+                                    text = "${operador["tipo"]}: ${operador["operador"]}",
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(text = "Línea: ${operador["linea"]}, Columna: ${operador["columna"]}")
-                                Text(text = "Ocurrencia: ${operador["ocurrencia"]}")
+                                Text(text = "Expresión: ${operador["ocurrencia"]}")
                             }
                         }
+                    }
+                    
+                    item {
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                }
+                
+                // Mostrar reporte de estructuras de control
+                if (reporteEstructuras.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Reporte de Estructuras de Control:",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                    
+                    items(reporteEstructuras) { estructura ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp)
+                            ) {
+                                Text(
+                                    text = "Estructura: ${estructura["tipo"]}",
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(text = "Condición: ${estructura["condicion"]}")
+                                Text(text = "Línea: ${estructura["linea"]}, Columna: ${estructura["columna"]}")
+                            }
+                        }
+                    }
+                    
+                    item {
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
                 
