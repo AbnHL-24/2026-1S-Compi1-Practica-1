@@ -7,12 +7,19 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.background
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.Alignment
 import com.abn.app_compi1_practica1.ui.theme.AppCompi1Practica1Theme
 import com.abn.app_compi1_practica1.compiler.Lexer
 import com.abn.app_compi1_practica1.compiler.Parser
@@ -152,26 +159,73 @@ MOSTRAR "Todas las funcionalidades validadas"
             modifier = Modifier.padding(bottom = 16.dp)
         )
         
-        // Campo de texto para la expresión
-        OutlinedTextField(
-            value = textoExpresion,
-            onValueChange = { textoExpresion = it },
-            label = { Text("Ingrese código") },
+        // Campo de texto con números de línea
+        Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(150.dp),
-            placeholder = { 
+                .height(250.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
                 Text(
-                    "Ejemplos:\n" +
-                    "VAR contador = 0\n" +
-                    "MIENTRAS (contador < 5) HACER\n" +
-                    "    MOSTRAR \"Hola\"\n" +
-                    "    contador = contador + 1\n" +
-                    "FINMIENTRAS"
-                ) 
-            },
-            maxLines = 6
-        )
+                    text = "Ingrese código",
+                    modifier = Modifier.padding(8.dp),
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(8.dp)
+                ) {
+                    // Columna de números de línea
+                    val numLineas = textoExpresion.count { it == '\n' } + 1
+                    Column(
+                        modifier = Modifier
+                            .width(40.dp)
+                            .fillMaxHeight()
+                            .background(MaterialTheme.colorScheme.surface)
+                            .padding(4.dp)
+                            .verticalScroll(rememberScrollState()),
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        for (i in 1..numLineas) {
+                            Text(
+                                text = "$i",
+                                fontSize = 12.sp,
+                                fontFamily = FontFamily.Monospace,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                modifier = Modifier.padding(vertical = 2.dp)
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.width(4.dp))
+                    
+                    // Campo de texto principal
+                    OutlinedTextField(
+                        value = textoExpresion,
+                        onValueChange = { textoExpresion = it },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .weight(1f),
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 12.sp
+                        ),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                            focusedBorderColor = Color.Transparent,
+                            unfocusedBorderColor = Color.Transparent
+                        )
+                    )
+                }
+            }
+        }
         
         Spacer(modifier = Modifier.height(16.dp))
         
