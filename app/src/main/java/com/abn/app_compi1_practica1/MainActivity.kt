@@ -40,7 +40,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun EvaluadorExpresionesScreen() {
     // Estado para el texto de entrada con ejemplo inicial
-    var textoExpresion by remember { mutableStateOf("VAR a = 10\nVAR b = 20\nSI (a < b) ENTONCES\n    MOSTRAR \"a es menor que b\"\nFINSI\nSI (a > b) ENTONCES\n    MOSTRAR \"a es mayor\"\nSINO\n    MOSTRAR \"a NO es mayor\"\nFINSI") }
+    var textoExpresion by remember { mutableStateOf("VAR contador = 0\nMIENTRAS (contador < 5) HACER\n    MOSTRAR \"Contador: \"\n    contador = contador + 1\nFINMIENTRAS\nMOSTRAR \"Fin del ciclo\"") }
     
     // Estado para los resultados
     var resultado by remember { mutableStateOf<String?>(null) }
@@ -72,11 +72,11 @@ fun EvaluadorExpresionesScreen() {
             placeholder = { 
                 Text(
                     "Ejemplos:\n" +
-                    "VAR a = 10\n" +
-                    "VAR b = 20\n" +
-                    "a + b\n" +
-                    "# Comentario\n" +
-                    "5 > 3 && 10 < 20"
+                    "VAR contador = 0\n" +
+                    "MIENTRAS (contador < 5) HACER\n" +
+                    "    MOSTRAR \"Hola\"\n" +
+                    "    contador = contador + 1\n" +
+                    "FINMIENTRAS"
                 ) 
             },
             maxLines = 6
@@ -104,6 +104,7 @@ fun EvaluadorExpresionesScreen() {
                     parser.entradaSimulada.put("y", 25.0)
                     parser.entradaSimulada.put("numero", 42.0)
                     parser.entradaSimulada.put("n", 10.0)
+                    parser.entradaSimulada.put("contador", 0.0)
                     
                     // Parsear y evaluar
                     val resultadoParseo = parser.parse()

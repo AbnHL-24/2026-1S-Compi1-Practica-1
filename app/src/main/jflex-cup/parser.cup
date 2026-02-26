@@ -130,7 +130,7 @@ action code {:
 terminal String ENTERO, DECIMAL, ID, CADENA;
 
 // Palabras reservadas
-terminal VAR, MOSTRAR, LEER, SI, ENTONCES, SINO, FINSI;
+terminal VAR, MOSTRAR, LEER, SI, ENTONCES, SINO, FINSI, MIENTRAS, HACER, FINMIENTRAS;
 
 // Operadores aritméticos
 terminal MAS, MENOS, MULT, DIV;
@@ -156,6 +156,7 @@ nonterminal Object ASIGNACION_VAR;
 nonterminal Object MOSTRAR_INST;
 nonterminal Object LEER_INST;
 nonterminal Object CONDICIONAL_SI;
+nonterminal Object CICLO_MIENTRAS;
 nonterminal LinkedList<Object> BLOQUE;
 nonterminal Object EXPRESION;
 nonterminal Double EXPRESION_ARITMETICA;
@@ -225,6 +226,10 @@ INSTRUCCION ::=
     | CONDICIONAL_SI:c
     {:
         RESULT = c;
+    :}
+    | CICLO_MIENTRAS:w
+    {:
+        RESULT = w;
     :}
     | EXPRESION:e
     {:
@@ -364,6 +369,31 @@ CONDICIONAL_SI ::=
         }
         
         RESULT = "SI ejecutado - condición: " + resultado;
+    :}
+    ;
+
+// ========================================================================================
+// CICLO MIENTRAS
+// ========================================================================================
+
+CICLO_MIENTRAS ::=
+    // MIENTRAS (condicion) HACER bloque FINMIENTRAS
+    MIENTRAS PARENT_IZQ EXPRESION:condicion PARENT_DER HACER BLOQUE:bloque FINMIENTRAS
+    {:
+        // Nota: En esta versión simplificada, el ciclo MIENTRAS es reconocido
+        // sintácticamente pero no se ejecuta iterativamente.
+        // Para una ejecución completa, se requeriría implementar un AST.
+        
+        // Evaluar la condición inicial
+        boolean resultado = false;
+        if (condicion instanceof Boolean) {
+            resultado = (Boolean) condicion;
+        } else if (condicion instanceof Double) {
+            resultado = ((Double) condicion) != 0.0;
+        }
+        
+        // Por ahora, solo reportamos que se reconoció la estructura
+        RESULT = "MIENTRAS reconocido - condición inicial: " + resultado + ", instrucciones en bloque: " + bloque.size();
     :}
     ;
 
