@@ -54,7 +54,7 @@ fun EvaluadorExpresionesScreen() {
     ) {
         // Título
         Text(
-            text = "Evaluador de Expresiones",
+            text = "Intérprete de Pseudocódigo",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 16.dp)
@@ -64,18 +64,18 @@ fun EvaluadorExpresionesScreen() {
         OutlinedTextField(
             value = textoExpresion,
             onValueChange = { textoExpresion = it },
-            label = { Text("Ingrese expresión") },
+            label = { Text("Ingrese código") },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(150.dp),
             placeholder = { 
                 Text(
                     "Ejemplos:\n" +
-                    "2 + 3 * 4\n" +
-                    "# Esto es un comentario\n" +
-                    "(10 - 5) / 2\n" +
-                    "5 > 3\n" +
-                    "10 >= 5 && 3 < 8"
+                    "VAR a = 10\n" +
+                    "VAR b = 20\n" +
+                    "a + b\n" +
+                    "# Comentario\n" +
+                    "5 > 3 && 10 < 20"
                 ) 
             },
             maxLines = 6
@@ -108,7 +108,12 @@ fun EvaluadorExpresionesScreen() {
                     
                     if (todosLosErrores.isEmpty()) {
                         // Si no hay errores, mostrar el resultado
-                        resultado = "Resultado: ${resultadoParseo.value}"
+                        val valorResultado = resultadoParseo.value
+                        resultado = if (valorResultado != null) {
+                            "Resultado: $valorResultado"
+                        } else {
+                            "Código ejecutado correctamente"
+                        }
                         
                         // Obtener reporte de operadores
                         reporteOperadores = parser.reporteOperadores.map { it.toMap() }
@@ -223,7 +228,7 @@ fun EvaluadorExpresionesScreen() {
                 if (resultado == null && errores.isEmpty()) {
                     item {
                         Text(
-                            text = "Ingrese una expresión y presione 'Evaluar'",
+                            text = "Ingrese código y presione 'Evaluar'",
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }

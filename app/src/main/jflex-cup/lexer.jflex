@@ -4,6 +4,9 @@
    
    Este analizador reconoce:
    - Números enteros y decimales
+   - Identificadores (variables)
+   - Palabra reservada VAR para declaración de variables
+   - Operador de asignación =
    - Operadores aritméticos: + - * /
    - Operadores relacionales: == != < > <= >=
    - Operadores lógicos: && || !
@@ -62,6 +65,12 @@ BLANCOS = [ \r\t\f\n]+
 // Comentarios de una línea (empiezan con # y van hasta el final de la línea)
 COMENTARIO = "#"[^\n]*
 
+// Identificadores (variables)
+ID = [a-zA-Z][a-zA-Z0-9_]*
+
+// Palabras reservadas
+VAR = "VAR"
+
 // Números
 ENTERO = [0-9]+
 DECIMAL = [0-9]+"."[0-9]+
@@ -79,6 +88,9 @@ MAYOR_IGUAL = ">="
 MENOR_IGUAL = "<="
 MAYOR = ">"
 MENOR = "<"
+
+// Asignación
+ASIGNACION = "="
 
 // Operadores lógicos
 AND = "&&"
@@ -99,6 +111,9 @@ PARENT_DER = ")"
 <YYINITIAL> {BLANCOS}       { /* Ignorar espacios en blanco */ }
 <YYINITIAL> {COMENTARIO}    { /* Ignorar comentarios de una línea */ }
 
+// Palabras reservadas (ANTES que los identificadores)
+<YYINITIAL> {VAR}           { return new Symbol(sym.VAR, yyline, yycolumn, yytext()); }
+
 // Operadores lógicos (PRIMERO, para evitar conflictos con !)
 <YYINITIAL> {AND}           { return new Symbol(sym.AND, yyline, yycolumn, yytext()); }
 <YYINITIAL> {OR}            { return new Symbol(sym.OR, yyline, yycolumn, yytext()); }
@@ -111,6 +126,9 @@ PARENT_DER = ")"
 <YYINITIAL> {MENOR_IGUAL}   { return new Symbol(sym.MENOR_IGUAL, yyline, yycolumn, yytext()); }
 <YYINITIAL> {MAYOR}         { return new Symbol(sym.MAYOR, yyline, yycolumn, yytext()); }
 <YYINITIAL> {MENOR}         { return new Symbol(sym.MENOR, yyline, yycolumn, yytext()); }
+
+// Asignación
+<YYINITIAL> {ASIGNACION}    { return new Symbol(sym.ASIGNACION, yyline, yycolumn, yytext()); }
 
 // Operadores aritméticos
 <YYINITIAL> {MAS}           { return new Symbol(sym.MAS, yyline, yycolumn, yytext()); }
@@ -125,6 +143,9 @@ PARENT_DER = ")"
 // Números (DECIMAL primero, para que reconozca el punto)
 <YYINITIAL> {DECIMAL}       { return new Symbol(sym.DECIMAL, yyline, yycolumn, yytext()); }
 <YYINITIAL> {ENTERO}        { return new Symbol(sym.ENTERO, yyline, yycolumn, yytext()); }
+
+// Identificadores (AL FINAL, después de palabras reservadas)
+<YYINITIAL> {ID}            { return new Symbol(sym.ID, yyline, yycolumn, yytext()); }
 
 // Errores léxicos
 <YYINITIAL> .               { 

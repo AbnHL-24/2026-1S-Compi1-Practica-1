@@ -14,6 +14,7 @@
 .cxx
 local.properties
 /.idea/
+/context/
 
 ### Java template
 # Compiled class file
@@ -146,3 +147,16 @@ fabric.properties
 hs_err_pid*
 replay_pid*
 
+
+# ==================================================================================
+# JFLEX Y CUP - Código generado automáticamente
+# ==================================================================================
+# No versionar el código generado, solo los archivos fuente (.jflex y .cup)
+**/build/generated/source/jflex-cup/
+
+# IMPORTANTE: Los archivos .jflex y .cup SÍ deben versionarse
+# Solo ignoramos el código Java generado automáticamente
+
+# Excepciones: Mantener los JARs de JFlex y CUP para el build
+!app/libs/jflex-full-*.jar
+!app/libs/java-cup-*.jar

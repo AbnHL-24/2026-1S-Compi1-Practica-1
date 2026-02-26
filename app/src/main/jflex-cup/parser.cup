@@ -1,12 +1,16 @@
 /* ========================================================================================
-   ANALIZADOR SINTÁCTICO - Evaluador de Expresiones
+   ANALIZADOR SINTÁCTICO - Evaluador de Expresiones con Variables
    Curso: Compiladores 1 - Práctica 1
    
    Este analizador evalúa:
+   - Declaración de variables: VAR id = expresion
+   - Asignación de variables: id = expresion
    - Expresiones aritméticas: + - * / con precedencia correcta
    - Expresiones relacionales: == != < > <= >=
    - Expresiones lógicas: && || !
+   - Uso de variables en expresiones
    - Paréntesis para agrupar
+   - Múltiples instrucciones separadas por saltos de línea
    ======================================================================================== */
 
 package com.abn.app_compi1_practica1.compiler;
@@ -20,11 +24,17 @@ import java.util.HashMap;
 // CÓDIGO DEL PARSER
 // ========================================================================================
 parser code {:
+    // Tabla de símbolos para almacenar variables
+    public HashMap<String, Double> tablaSimbolos = new HashMap<>();
+    
     // Lista para almacenar errores sintácticos
     public LinkedList<String> erroresSintacticos = new LinkedList<>();
     
     // Lista para el reporte de operadores matemáticos
     public LinkedList<HashMap<String, Object>> reporteOperadores = new LinkedList<>();
+    
+    // Resultado de la última expresión evaluada
+    public Object ultimoResultado = null;
     
     // Método para agregar operadores al reporte
     public void agregarOperador(String operador, int linea, int columna, String ocurrencia) {
@@ -34,6 +44,26 @@ parser code {:
         op.put("columna", columna + 1);
         op.put("ocurrencia", ocurrencia);
         reporteOperadores.add(op);
+    }
+    
+    // Métodos para manejar la tabla de símbolos
+    public void declararVariable(String id, Double valor) {
+        tablaSimbolos.put(id, valor);
+    }
+    
+    public void asignarVariable(String id, Double valor) {
+        if (!tablaSimbolos.containsKey(id)) {
+            erroresSintacticos.add("Error Semántico: La variable '" + id + "' no ha sido declarada");
+        }
+        tablaSimbolos.put(id, valor);
+    }
+    
+    public Double obtenerVariable(String id) {
+        if (!tablaSimbolos.containsKey(id)) {
+            erroresSintacticos.add("Error Semántico: La variable '" + id + "' no ha sido declarada");
+            return 0.0;
+        }
+        return tablaSimbolos.get(id);
     }
     
     // Manejo de errores sintácticos recuperables
@@ -62,7 +92,10 @@ action code {:
 // ========================================================================================
 
 // Literales
-terminal String ENTERO, DECIMAL;
+terminal String ENTERO, DECIMAL, ID;
+
+// Palabras reservadas
+terminal VAR;
 
 // Operadores aritméticos
 terminal MAS, MENOS, MULT, DIV;
@@ -74,12 +107,17 @@ terminal IGUAL, DIFERENTE, MAYOR, MENOR, MAYOR_IGUAL, MENOR_IGUAL;
 terminal AND, OR, NOT;
 
 // Símbolos especiales
-terminal PARENT_IZQ, PARENT_DER;
+terminal PARENT_IZQ, PARENT_DER, ASIGNACION;
 
 // ========================================================================================
 // NO TERMINALES
 // ========================================================================================
 
+nonterminal Object PROGRAMA;
+nonterminal LinkedList<Object> INSTRUCCIONES;
+nonterminal Object INSTRUCCION;
+nonterminal Object DECLARACION;
+nonterminal Object ASIGNACION_VAR;
 nonterminal Object EXPRESION;
 nonterminal Double EXPRESION_ARITMETICA;
 nonterminal Boolean EXPRESION_RELACIONAL;
@@ -101,7 +139,83 @@ precedence left MULT, DIV;
 // GRAMÁTICA
 // ========================================================================================
 
-start with EXPRESION;
+start with PROGRAMA;
+
+// Programa: una o más instrucciones
+PROGRAMA ::= 
+    INSTRUCCIONES:lista
+    {:
+        // El resultado es la última instrucción evaluada
+        if (lista != null && !lista.isEmpty()) {
+            parser.ultimoResultado = lista.get(lista.size() - 1);
+        }
+        RESULT = parser.ultimoResultado;
+    :}
+    ;
+
+INSTRUCCIONES ::= 
+    INSTRUCCIONES:lista INSTRUCCION:inst
+    {:
+        lista.add(inst);
+        RESULT = lista;
+    :}
+    | INSTRUCCION:inst
+    {:
+        RESULT = new LinkedList<Object>();
+        RESULT.add(inst);
+    :}
+    ;
+
+INSTRUCCION ::= 
+    DECLARACION:d
+    {:
+        RESULT = d;
+    :}
+    | ASIGNACION_VAR:a
+    {:
+        RESULT = a;
+    :}
+    | EXPRESION:e
+    {:
+        RESULT = e;
+    :}
+    ;
+
+// ========================================================================================
+// DECLARACIÓN DE VARIABLES
+// ========================================================================================
+
+DECLARACION ::= 
+    // VAR id = expresion
+    VAR ID:nombre ASIGNACION EXPRESION_ARITMETICA:valor
+    {:
+        parser.declararVariable(nombre, valor);
+        RESULT = "Variable '" + nombre + "' declarada con valor: " + valor;
+    :}
+    
+    // VAR id (sin inicialización)
+    | VAR ID:nombre
+    {:
+        parser.declararVariable(nombre, 0.0);
+        RESULT = "Variable '" + nombre + "' declarada con valor: 0.0";
+    :}
+    ;
+
+// ========================================================================================
+// ASIGNACIÓN DE VARIABLES
+// ========================================================================================
+
+ASIGNACION_VAR ::= 
+    ID:nombre ASIGNACION EXPRESION_ARITMETICA:valor
+    {:
+        parser.asignarVariable(nombre, valor);
+        RESULT = "Variable '" + nombre + "' = " + valor;
+    :}
+    ;
+
+// ========================================================================================
+// EXPRESIONES
+// ========================================================================================
 
 // Expresión principal (puede ser aritmética, relacional o lógica)
 EXPRESION ::= 
@@ -167,6 +281,12 @@ EXPRESION_ARITMETICA ::=
     | PARENT_IZQ EXPRESION_ARITMETICA:e PARENT_DER
     {:
         RESULT = e;
+    :}
+    
+    // Variable (acceso)
+    | ID:nombre
+    {:
+        RESULT = parser.obtenerVariable(nombre);
     :}
     
     // Número decimal
