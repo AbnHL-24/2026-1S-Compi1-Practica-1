@@ -27,6 +27,9 @@ parser code {:
     // Tabla de símbolos para almacenar variables
     public HashMap<String, Double> tablaSimbolos = new HashMap<>();
     
+    // Lista para almacenar la salida de MOSTRAR
+    public LinkedList<String> salida = new LinkedList<>();
+    
     // Lista para almacenar errores sintácticos
     public LinkedList<String> erroresSintacticos = new LinkedList<>();
     
@@ -66,6 +69,11 @@ parser code {:
         return tablaSimbolos.get(id);
     }
     
+    // Método para agregar salida de MOSTRAR
+    public void agregarSalida(String texto) {
+        salida.add(texto);
+    }
+    
     // Manejo de errores sintácticos recuperables
     public void syntax_error(Symbol simbolo) {
         String error = String.format("Error Sintáctico [Línea: %d, Columna: %d] - No se esperaba: '%s'",
@@ -92,10 +100,10 @@ action code {:
 // ========================================================================================
 
 // Literales
-terminal String ENTERO, DECIMAL, ID;
+terminal String ENTERO, DECIMAL, ID, CADENA;
 
 // Palabras reservadas
-terminal VAR;
+terminal VAR, MOSTRAR;
 
 // Operadores aritméticos
 terminal MAS, MENOS, MULT, DIV;
@@ -118,6 +126,7 @@ nonterminal LinkedList<Object> INSTRUCCIONES;
 nonterminal Object INSTRUCCION;
 nonterminal Object DECLARACION;
 nonterminal Object ASIGNACION_VAR;
+nonterminal Object MOSTRAR_INST;
 nonterminal Object EXPRESION;
 nonterminal Double EXPRESION_ARITMETICA;
 nonterminal Boolean EXPRESION_RELACIONAL;
@@ -175,6 +184,10 @@ INSTRUCCION ::=
     {:
         RESULT = a;
     :}
+    | MOSTRAR_INST:m
+    {:
+        RESULT = m;
+    :}
     | EXPRESION:e
     {:
         RESULT = e;
@@ -210,6 +223,25 @@ ASIGNACION_VAR ::=
     {:
         parser.asignarVariable(nombre, valor);
         RESULT = "Variable '" + nombre + "' = " + valor;
+    :}
+    ;
+
+// ========================================================================================
+// MOSTRAR - Imprimir texto en consola
+// ========================================================================================
+
+MOSTRAR_INST ::=
+    MOSTRAR CADENA:texto
+    {:
+        // Remover las comillas de la cadena
+        String textoLimpio = texto.substring(1, texto.length() - 1);
+        // Procesar secuencias de escape
+        textoLimpio = textoLimpio.replace("\\\"", "\"");
+        textoLimpio = textoLimpio.replace("\\n", "\n");
+        textoLimpio = textoLimpio.replace("\\t", "\t");
+        
+        parser.agregarSalida(textoLimpio);
+        RESULT = textoLimpio;
     :}
     ;
 

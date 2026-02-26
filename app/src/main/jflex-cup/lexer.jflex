@@ -6,6 +6,8 @@
    - Números enteros y decimales
    - Identificadores (variables)
    - Palabra reservada VAR para declaración de variables
+   - Palabra reservada MOSTRAR para imprimir texto
+   - Cadenas de texto entre comillas dobles
    - Operador de asignación =
    - Operadores aritméticos: + - * /
    - Operadores relacionales: == != < > <= >=
@@ -70,6 +72,10 @@ ID = [a-zA-Z][a-zA-Z0-9_]*
 
 // Palabras reservadas
 VAR = "VAR"
+MOSTRAR = "MOSTRAR"
+
+// Cadenas de texto (entre comillas dobles, permite escapar comillas)
+CADENA = [\"]((\\\")|[^\"\n]*)[\"]
 
 // Números
 ENTERO = [0-9]+
@@ -113,6 +119,10 @@ PARENT_DER = ")"
 
 // Palabras reservadas (ANTES que los identificadores)
 <YYINITIAL> {VAR}           { return new Symbol(sym.VAR, yyline, yycolumn, yytext()); }
+<YYINITIAL> {MOSTRAR}       { return new Symbol(sym.MOSTRAR, yyline, yycolumn, yytext()); }
+
+// Cadenas de texto
+<YYINITIAL> {CADENA}        { return new Symbol(sym.CADENA, yyline, yycolumn, yytext()); }
 
 // Operadores lógicos (PRIMERO, para evitar conflictos con !)
 <YYINITIAL> {AND}           { return new Symbol(sym.AND, yyline, yycolumn, yytext()); }

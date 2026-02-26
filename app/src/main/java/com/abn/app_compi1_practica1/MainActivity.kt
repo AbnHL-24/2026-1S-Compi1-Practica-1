@@ -39,11 +39,12 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EvaluadorExpresionesScreen() {
-    // Estado para el texto de entrada
-    var textoExpresion by remember { mutableStateOf("") }
+    // Estado para el texto de entrada con ejemplo inicial
+    var textoExpresion by remember { mutableStateOf("VAR a = 10\nVAR b = 20\nMOSTRAR \"El valor de a es:\"\nMOSTRAR \"Suma: \"\na + b") }
     
     // Estado para los resultados
     var resultado by remember { mutableStateOf<String?>(null) }
+    var salida by remember { mutableStateOf<List<String>>(emptyList()) }
     var errores by remember { mutableStateOf<List<String>>(emptyList()) }
     var reporteOperadores by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
     
@@ -89,6 +90,7 @@ fun EvaluadorExpresionesScreen() {
                 try {
                     // Limpiar resultados anteriores
                     resultado = null
+                    salida = emptyList()
                     errores = emptyList()
                     reporteOperadores = emptyList()
                     
@@ -107,6 +109,9 @@ fun EvaluadorExpresionesScreen() {
                     todosLosErrores.addAll(erroresSintacticos)
                     
                     if (todosLosErrores.isEmpty()) {
+                        // Obtener salida de MOSTRAR
+                        salida = parser.salida.toList()
+                        
                         // Si no hay errores, mostrar el resultado
                         val valorResultado = resultadoParseo.value
                         resultado = if (valorResultado != null) {
@@ -156,6 +161,41 @@ fun EvaluadorExpresionesScreen() {
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                }
+                
+                // Mostrar salida de MOSTRAR
+                if (salida.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Salida:",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                    
+                    items(salida) { linea ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                            )
+                        ) {
+                            Text(
+                                text = linea,
+                                modifier = Modifier.padding(12.dp),
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                fontSize = 16.sp
+                            )
+                        }
+                    }
+                    
+                    item {
                         Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
@@ -225,10 +265,10 @@ fun EvaluadorExpresionesScreen() {
                 }
                 
                 // Mensaje inicial si no hay nada
-                if (resultado == null && errores.isEmpty()) {
+                if (resultado == null && errores.isEmpty() && salida.isEmpty()) {
                     item {
                         Text(
-                            text = "Ingrese código y presione 'Evaluar'",
+                            text = "Presione 'Evaluar' para ejecutar el código de ejemplo",
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
