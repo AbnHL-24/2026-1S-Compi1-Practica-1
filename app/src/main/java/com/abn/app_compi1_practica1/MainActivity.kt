@@ -40,7 +40,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun EvaluadorExpresionesScreen() {
     // Estado para el texto de entrada con ejemplo inicial
-    var textoExpresion by remember { mutableStateOf("MOSTRAR \"Ingrese el primer número:\"\nLEER x\nMOSTRAR \"Ingrese el segundo número:\"\nLEER y\nMOSTRAR \"La suma es:\"\nx + y") }
+    var textoExpresion by remember { mutableStateOf("VAR a = 10\nVAR b = 20\nSI (a < b) ENTONCES\n    MOSTRAR \"a es menor que b\"\nFINSI\nSI (a > b) ENTONCES\n    MOSTRAR \"a es mayor\"\nSINO\n    MOSTRAR \"a NO es mayor\"\nFINSI") }
     
     // Estado para los resultados
     var resultado by remember { mutableStateOf<String?>(null) }

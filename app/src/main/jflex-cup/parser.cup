@@ -130,7 +130,7 @@ action code {:
 terminal String ENTERO, DECIMAL, ID, CADENA;
 
 // Palabras reservadas
-terminal VAR, MOSTRAR, LEER;
+terminal VAR, MOSTRAR, LEER, SI, ENTONCES, SINO, FINSI;
 
 // Operadores aritméticos
 terminal MAS, MENOS, MULT, DIV;
@@ -155,6 +155,8 @@ nonterminal Object DECLARACION;
 nonterminal Object ASIGNACION_VAR;
 nonterminal Object MOSTRAR_INST;
 nonterminal Object LEER_INST;
+nonterminal Object CONDICIONAL_SI;
+nonterminal LinkedList<Object> BLOQUE;
 nonterminal Object EXPRESION;
 nonterminal Double EXPRESION_ARITMETICA;
 nonterminal Boolean EXPRESION_RELACIONAL;
@@ -219,6 +221,10 @@ INSTRUCCION ::=
     | LEER_INST:l
     {:
         RESULT = l;
+    :}
+    | CONDICIONAL_SI:c
+    {:
+        RESULT = c;
     :}
     | EXPRESION:e
     {:
@@ -286,6 +292,78 @@ LEER_INST ::=
     {:
         parser.leerVariable(nombre);
         RESULT = "LEER " + nombre;
+    :}
+    ;
+
+// ========================================================================================
+// BLOQUE - Conjunto de instrucciones (para SI y MIENTRAS)
+// ========================================================================================
+
+BLOQUE ::=
+    BLOQUE:lista INSTRUCCION:inst
+    {:
+        lista.add(inst);
+        RESULT = lista;
+    :}
+    | INSTRUCCION:inst
+    {:
+        LinkedList<Object> bloque = new LinkedList<Object>();
+        bloque.add(inst);
+        RESULT = bloque;
+    :}
+    ;
+
+// ========================================================================================
+// CONDICIONAL SI
+// ========================================================================================
+
+CONDICIONAL_SI ::=
+    // SI (condicion) ENTONCES bloque FINSI
+    SI PARENT_IZQ EXPRESION:condicion PARENT_DER ENTONCES BLOQUE:bloqueVerdadero FINSI
+    {:
+        // Evaluar la condición
+        boolean resultado = false;
+        if (condicion instanceof Boolean) {
+            resultado = (Boolean) condicion;
+        } else if (condicion instanceof Double) {
+            resultado = ((Double) condicion) != 0.0;
+        }
+        
+        // Ejecutar el bloque si la condición es verdadera
+        Object ultimoValor = null;
+        if (resultado) {
+            for (Object inst : bloqueVerdadero) {
+                ultimoValor = inst;
+            }
+        }
+        
+        RESULT = "SI ejecutado - condición: " + resultado;
+    :}
+    
+    // SI (condicion) ENTONCES bloque SINO bloque FINSI
+    | SI PARENT_IZQ EXPRESION:condicion PARENT_DER ENTONCES BLOQUE:bloqueVerdadero SINO BLOQUE:bloqueFalso FINSI
+    {:
+        // Evaluar la condición
+        boolean resultado = false;
+        if (condicion instanceof Boolean) {
+            resultado = (Boolean) condicion;
+        } else if (condicion instanceof Double) {
+            resultado = ((Double) condicion) != 0.0;
+        }
+        
+        // Ejecutar el bloque correspondiente
+        Object ultimoValor = null;
+        if (resultado) {
+            for (Object inst : bloqueVerdadero) {
+                ultimoValor = inst;
+            }
+        } else {
+            for (Object inst : bloqueFalso) {
+                ultimoValor = inst;
+            }
+        }
+        
+        RESULT = "SI ejecutado - condición: " + resultado;
     :}
     ;
 

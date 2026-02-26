@@ -8,6 +8,7 @@
    - Palabra reservada VAR para declaración de variables
    - Palabra reservada MOSTRAR para imprimir texto
    - Palabra reservada LEER para entrada de datos
+   - Palabras reservadas SI, ENTONCES, SINO, FINSI para condicionales
    - Cadenas de texto entre comillas dobles
    - Operador de asignación =
    - Operadores aritméticos: + - * /
@@ -75,6 +76,10 @@ ID = [a-zA-Z][a-zA-Z0-9_]*
 VAR = "VAR"
 MOSTRAR = "MOSTRAR"
 LEER = "LEER"
+SI = "SI"
+ENTONCES = "ENTONCES"
+SINO = "SINO"
+FINSI = "FINSI"
 
 // Cadenas de texto (entre comillas dobles, permite escapar comillas)
 CADENA = [\"]((\\\")|[^\"\n]*)[\"]
@@ -123,6 +128,10 @@ PARENT_DER = ")"
 <YYINITIAL> {VAR}           { return new Symbol(sym.VAR, yyline, yycolumn, yytext()); }
 <YYINITIAL> {MOSTRAR}       { return new Symbol(sym.MOSTRAR, yyline, yycolumn, yytext()); }
 <YYINITIAL> {LEER}          { return new Symbol(sym.LEER, yyline, yycolumn, yytext()); }
+<YYINITIAL> {SI}            { return new Symbol(sym.SI, yyline, yycolumn, yytext()); }
+<YYINITIAL> {ENTONCES}      { return new Symbol(sym.ENTONCES, yyline, yycolumn, yytext()); }
+<YYINITIAL> {SINO}          { return new Symbol(sym.SINO, yyline, yycolumn, yytext()); }
+<YYINITIAL> {FINSI}         { return new Symbol(sym.FINSI, yyline, yycolumn, yytext()); }
 
 // Cadenas de texto
 <YYINITIAL> {CADENA}        { return new Symbol(sym.CADENA, yyline, yycolumn, yytext()); }
