@@ -55,13 +55,15 @@ VAR contador          # Declaración sin inicialización (valor por defecto 0)
 
 ### MOSTRAR
 ```
-MOSTRAR "texto"        # Muestra texto literal
-MOSTRAR variable       # Muestra el valor de una variable
+MOSTRAR "texto"           # Muestra texto literal
+MOSTRAR variable          # Muestra el valor de una variable
+MOSTRAR (a + b)           # Muestra el resultado de una expresión
+MOSTRAR 42                # Muestra un número literal
 ```
 
 ### LEER
 ```
-LEER variable         # Lee un valor y lo asigna a la variable
+LEER variable            # Lee un valor y lo asigna a la variable
 ```
 
 ---
