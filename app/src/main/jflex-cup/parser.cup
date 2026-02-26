@@ -31,6 +31,9 @@ import com.abn.app_compi1_practica1.interprete.expresiones.OperacionRelacional;
 import com.abn.app_compi1_practica1.interprete.expresiones.OperadorRelacional;
 import com.abn.app_compi1_practica1.interprete.expresiones.OperacionLogica;
 import com.abn.app_compi1_practica1.interprete.expresiones.OperadorLogico;
+import com.abn.app_compi1_practica1.interprete.instrucciones.Instruccion;
+import com.abn.app_compi1_practica1.interprete.instrucciones.Declaracion;
+import com.abn.app_compi1_practica1.interprete.instrucciones.Asignacion;
 
 // ========================================================================================
 // CÓDIGO DEL PARSER
@@ -166,8 +169,8 @@ terminal PARENT_IZQ, PARENT_DER, ASIGNACION;
 nonterminal Object PROGRAMA;
 nonterminal LinkedList<Object> INSTRUCCIONES;
 nonterminal Object INSTRUCCION;
-nonterminal Object DECLARACION;
-nonterminal Object ASIGNACION_VAR;
+nonterminal Instruccion DECLARACION;
+nonterminal Instruccion ASIGNACION_VAR;
 nonterminal Object MOSTRAR_INST;
 nonterminal Object LEER_INST;
 nonterminal Object CONDICIONAL_SI;
@@ -260,29 +263,33 @@ DECLARACION ::=
     // VAR id = expresion
     VAR ID:nombre ASIGNACION EXPRESION_ARITMETICA:valorExpr
     {:
-        // Interpretar la expresión para obtener el valor
+        // Construir objeto AST para la declaración
+        Declaracion declaracion = new Declaracion(nombre, valorExpr);
+        
+        // Ejecutar la declaración
+        declaracion.ejecutar(parser.entorno);
+        
+        // TEMPORAL: También declarar en la tabla antigua para compatibilidad con otras instrucciones
         Object valorObj = valorExpr.interpretar(parser.entorno);
         Double valor = (valorObj instanceof Double) ? (Double) valorObj : 0.0;
-        
-        // Declarar en el nuevo entorno
-        parser.entorno.declarar(nombre, valor);
-        
-        // TEMPORAL: También declarar en la tabla antigua para compatibilidad
         parser.declararVariable(nombre, valor);
         
-        RESULT = "Variable '" + nombre + "' declarada con valor: " + valor;
+        RESULT = declaracion;
     :}
     
     // VAR id (sin inicialización)
     | VAR ID:nombre
     {:
-        // Declarar en el nuevo entorno
-        parser.entorno.declarar(nombre, 0.0);
+        // Construir objeto AST para la declaración sin valor inicial
+        Declaracion declaracion = new Declaracion(nombre, null);
+        
+        // Ejecutar la declaración
+        declaracion.ejecutar(parser.entorno);
         
         // TEMPORAL: También declarar en la tabla antigua para compatibilidad
         parser.declararVariable(nombre, 0.0);
         
-        RESULT = "Variable '" + nombre + "' declarada con valor: 0.0";
+        RESULT = declaracion;
     :}
     ;
 
@@ -293,17 +300,18 @@ DECLARACION ::=
 ASIGNACION_VAR ::= 
     ID:nombre ASIGNACION EXPRESION_ARITMETICA:valorExpr
     {:
-        // Interpretar la expresión para obtener el valor
-        Object valorObj = valorExpr.interpretar(parser.entorno);
-        Double valor = (valorObj instanceof Double) ? (Double) valorObj : 0.0;
+        // Construir objeto AST para la asignación
+        Asignacion asignacion = new Asignacion(nombre, valorExpr);
         
-        // Asignar en el nuevo entorno
-        parser.entorno.asignar(nombre, valor);
+        // Ejecutar la asignación
+        asignacion.ejecutar(parser.entorno);
         
         // TEMPORAL: También asignar en la tabla antigua para compatibilidad
+        Object valorObj = valorExpr.interpretar(parser.entorno);
+        Double valor = (valorObj instanceof Double) ? (Double) valorObj : 0.0;
         parser.asignarVariable(nombre, valor);
         
-        RESULT = "Variable '" + nombre + "' = " + valor;
+        RESULT = asignacion;
     :}
     ;
 
