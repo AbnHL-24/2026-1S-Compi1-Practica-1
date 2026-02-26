@@ -72,6 +72,7 @@ fun EvaluadorExpresionesScreen() {
                 Text(
                     "Ejemplos:\n" +
                     "2 + 3 * 4\n" +
+                    "# Esto es un comentario\n" +
                     "(10 - 5) / 2\n" +
                     "5 > 3\n" +
                     "10 >= 5 && 3 < 8"

@@ -8,6 +8,7 @@
    - Operadores relacionales: == != < > <= >=
    - Operadores lógicos: && || !
    - Paréntesis para agrupar expresiones
+   - Comentarios de una línea (empiezan con #)
    ======================================================================================== */
 
 package com.abn.app_compi1_practica1.compiler;
@@ -58,6 +59,9 @@ import java.util.LinkedList;
 // Espacios en blanco y saltos de línea
 BLANCOS = [ \r\t\f\n]+
 
+// Comentarios de una línea (empiezan con # y van hasta el final de la línea)
+COMENTARIO = "#"[^\n]*
+
 // Números
 ENTERO = [0-9]+
 DECIMAL = [0-9]+"."[0-9]+
@@ -91,8 +95,9 @@ PARENT_DER = ")"
 // REGLAS LÉXICAS
 // ========================================================================================
 
-// Ignorar espacios en blanco
+// Ignorar espacios en blanco y comentarios
 <YYINITIAL> {BLANCOS}       { /* Ignorar espacios en blanco */ }
+<YYINITIAL> {COMENTARIO}    { /* Ignorar comentarios de una línea */ }
 
 // Operadores lógicos (PRIMERO, para evitar conflictos con !)
 <YYINITIAL> {AND}           { return new Symbol(sym.AND, yyline, yycolumn, yytext()); }
