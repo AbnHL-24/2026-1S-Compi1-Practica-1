@@ -340,8 +340,23 @@ ASIGNACION_VAR ::=
 MOSTRAR_INST ::=
     MOSTRAR CADENA:texto
     {:
-        // Construir objeto AST para MOSTRAR
+        // Construir objeto AST para MOSTRAR con cadena
         Mostrar mostrar = new Mostrar(texto, parser.salida);
+        
+        // Ejecutar la instrucción
+        mostrar.ejecutar(parser.entorno);
+        
+        RESULT = mostrar;
+    :}
+    
+    | MOSTRAR EXPRESION:expr
+    {:
+        // Evaluar la expresión y mostrar su valor
+        Object valor = expr.interpretar(parser.entorno);
+        String textoMostrar = valor != null ? valor.toString() : "null";
+        
+        // Construir objeto AST para MOSTRAR con expresión
+        Mostrar mostrar = new Mostrar(textoMostrar, parser.salida);
         
         // Ejecutar la instrucción
         mostrar.ejecutar(parser.entorno);
