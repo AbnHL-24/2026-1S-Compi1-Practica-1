@@ -138,8 +138,9 @@ MOSTRAR "Todas las funcionalidades validadas"
 """.trimIndent()
     
     // Estado para el texto de entrada con ejemplo inicial
-    var textoExpresion by remember { mutableStateOf(textoPruebaCompleto) }
-    
+    //var textoExpresion by remember { mutableStateOf(textoPruebaCompleto) }
+    var textoExpresion by remember { mutableStateOf("") }
+
     // Estado para los resultados
     var resultado by remember { mutableStateOf<String?>(null) }
     var salida by remember { mutableStateOf<List<String>>(emptyList()) }
