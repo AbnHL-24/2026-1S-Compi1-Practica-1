@@ -41,11 +41,11 @@ class MainActivity : ComponentActivity() {
 fun EvaluadorExpresionesScreen() {
     // Texto de prueba completo que ejercita todas las funcionalidades
     val textoPruebaCompleto = """
-// ===================================
-// PRUEBA COMPLETA DEL INTÉRPRETE
-// ===================================
+# ===================================
+# PRUEBA COMPLETA DEL INTÉRPRETE
+# ===================================
 
-// 1. DECLARACIÓN Y OPERACIONES ARITMÉTICAS
+# 1. DECLARACIÓN Y OPERACIONES ARITMÉTICAS
 VAR a = 10
 VAR b = 5
 VAR suma = a + b
@@ -64,7 +64,7 @@ MOSTRAR mult
 MOSTRAR "División: "
 MOSTRAR division
 
-// 2. OPERACIONES RELACIONALES
+# 2. OPERACIONES RELACIONALES
 VAR mayor = a > b
 VAR menor = a < b
 VAR igual = a == b
@@ -74,7 +74,7 @@ MOSTRAR "=== Operaciones Relacionales ==="
 MOSTRAR "10 > 5: "
 MOSTRAR mayor
 
-// 3. OPERACIONES LÓGICAS
+# 3. OPERACIONES LÓGICAS
 VAR resultado_and = (a > 5) && (b < 10)
 VAR resultado_or = (a < 5) || (b > 3)
 
@@ -82,14 +82,14 @@ MOSTRAR "=== Operaciones Lógicas ==="
 MOSTRAR "AND lógico: "
 MOSTRAR resultado_and
 
-// 4. ESTRUCTURA CONDICIONAL SI-ENTONCES
+# 4. ESTRUCTURA CONDICIONAL SI-ENTONCES
 VAR numero = 8
 SI (numero > 5) ENTONCES
     MOSTRAR "=== Condicional SI ==="
     MOSTRAR "El número es mayor que 5"
 FINSI
 
-// 5. ESTRUCTURA CONDICIONAL SI-ENTONCES-SINO
+# 5. ESTRUCTURA CONDICIONAL SI-ENTONCES-SINO
 VAR edad = 17
 SI (edad >= 18) ENTONCES
     MOSTRAR "=== Condicional SI-SINO ==="
@@ -99,7 +99,7 @@ SINO
     MOSTRAR "Menor de edad"
 FINSI
 
-// 6. CICLO MIENTRAS
+# 6. CICLO MIENTRAS
 VAR contador = 0
 VAR limite = 5
 
@@ -110,7 +110,7 @@ MIENTRAS (contador < limite) HACER
     contador = contador + 1
 FINMIENTRAS
 
-// 7. OPERACIONES COMPLEJAS ANIDADAS
+# 7. OPERACIONES COMPLEJAS ANIDADAS
 VAR x = 10
 VAR y = 20
 VAR z = 0
