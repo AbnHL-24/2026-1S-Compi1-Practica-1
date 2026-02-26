@@ -88,6 +88,7 @@ VAR resultado_or = (a < 5) || (b > 3)
 MOSTRAR "=== Operaciones Lógicas ==="
 MOSTRAR "AND lógico: "
 MOSTRAR resultado_and
+MOSTRAR resultado_or
 
 # 4. ESTRUCTURA CONDICIONAL SI-ENTONCES
 VAR numero = 8
